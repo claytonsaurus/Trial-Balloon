@@ -10,7 +10,7 @@ console.log('✅ NEW CODE LOADED - ENTERTAINMENT FILTER ENABLED');
 console.log('===========================================');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -400,7 +400,7 @@ cron.schedule('0 * * * *', () => {
 // Initial fetch on server start
 fetchGhostStories();
 
-app.listen(PORT, () => {
-  console.log(`Ghost News Scraper running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Ghost News Scraper running on http://0.0.0.0:${PORT}`);
   console.log('Auto-refresh scheduled every hour');
 });

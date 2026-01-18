@@ -7,14 +7,19 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["ghost", "haunting", "news", "scraper"],
+  "keywords": [
+    "ghost",
+    "haunting",
+    "news",
+    "scraper"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "cheerio": "^1.0.0-rc.12",
-    "node-cron": "^3.0.3",
-    "cors": "^2.8.5"
+    "axios": "^1.13.2",
+    "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.22.1",
+    "node-cron": "^3.0.3"
   }
 }
