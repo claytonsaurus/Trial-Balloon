@@ -93,6 +93,57 @@ function calculatePopularity(story) {
   return Math.min(score, 100);
 }
 
+// Filter out entertainment/media content (movies, TV shows, books, games, etc.)
+function isEntertainmentMedia(story) {
+  const text = (story.title + ' ' + story.description).toLowerCase();
+
+  // Keywords that indicate entertainment/media content
+  const mediaKeywords = [
+    // Movie/TV related
+    'movie', 'film', 'trailer', 'cinema', 'box office', 'premiere',
+    'tv show', 'television', 'series', 'episode', 'season', 'streaming',
+    'netflix', 'hulu', 'amazon prime', 'disney+', 'hbo', 'paramount+',
+    'actor', 'actress', 'director', 'starring', 'cast', 'screenplay',
+    'production', 'filming', 'sequel', 'prequel', 'reboot', 'remake',
+
+    // Book/Literature related
+    'book', 'novel', 'author', 'bestseller', 'published', 'publisher',
+    'chapter', 'reading', 'literature', 'fiction',
+
+    // Video game related
+    'video game', 'videogame', 'game', 'gaming', 'gamer', 'gameplay',
+    'playstation', 'xbox', 'nintendo', 'steam', 'console',
+
+    // Podcast/Audio related
+    'podcast', 'podcaster', 'audio drama',
+
+    // Theater/Performance
+    'theater', 'theatre', 'play', 'performance', 'stage',
+
+    // General entertainment
+    'entertainment', 'review', 'critic', 'rating', 'rotten tomatoes',
+    'imdb', 'metacritic', 'franchise', 'adaptation'
+  ];
+
+  // Check if any media keyword appears in the text
+  const hasMediaKeyword = mediaKeywords.some(keyword => text.includes(keyword));
+
+  // Additional patterns that suggest entertainment content
+  const entertainmentPatterns = [
+    /watch.*on/i,           // "watch it on Netflix"
+    /coming to.*in 202\d/i, // "coming to theaters in 2024"
+    /available on/i,        // "available on streaming"
+    /releases? (?:on|in)/i, // "releases on Friday"
+    /directed by/i,         // "directed by..."
+    /written by/i,          // "written by..."
+    /based on (?:the )?(?:book|novel)/i
+  ];
+
+  const matchesPattern = entertainmentPatterns.some(pattern => pattern.test(text));
+
+  return hasMediaKeyword || matchesPattern;
+}
+
 // Scrape Google News for ghost stories
 async function scrapeGoogleNews() {
   const searches = [
@@ -193,8 +244,16 @@ async function fetchGhostStories() {
 
     const allStories = [...googleStories, ...redditStories];
 
+    // Filter out entertainment/media content first
+    const realParanormalStories = allStories.filter(story => !isEntertainmentMedia(story));
+    const filteredCount = allStories.length - realParanormalStories.length;
+
+    if (filteredCount > 0) {
+      console.log(`Filtered out ${filteredCount} entertainment/media stories`);
+    }
+
     // Process each story
-    ghostStories = allStories.map(story => {
+    ghostStories = realParanormalStories.map(story => {
       const fullText = `${story.title} ${story.description}`;
       const location = extractLocation(fullText);
       const types = categorizeHaunting(fullText);
