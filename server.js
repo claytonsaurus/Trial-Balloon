@@ -5,6 +5,10 @@ const cron = require('node-cron');
 const cors = require('cors');
 const path = require('path');
 
+console.log('===========================================');
+console.log('✅ NEW CODE LOADED - ENTERTAINMENT FILTER ENABLED');
+console.log('===========================================');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
