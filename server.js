@@ -107,8 +107,13 @@ function isEntertainmentMedia(story) {
     'movie', 'film', 'trailer', 'cinema', 'box office', 'premiere',
     'tv show', 'television', 'series', 'episode', 'season', 'streaming',
     'netflix', 'hulu', 'amazon prime', 'disney+', 'hbo', 'paramount+',
-    'actor', 'actress', 'director', 'starring', 'cast', 'screenplay',
+    'actor', 'actress', 'director', 'starring', 'stars in', 'cast', 'screenplay',
     'production', 'filming', 'sequel', 'prequel', 'reboot', 'remake',
+    'release date', 'theatrical release', 'horror film', 'horror movie',
+
+    // Famous horror franchises (these are always movies/shows)
+    'paranormal activity', 'exorcist', 'conjuring', 'insidious', 'sinister',
+    'annabelle', 'ouija', 'the haunting of', 'american horror story',
 
     // Book/Literature related
     'book', 'novel', 'author', 'bestseller', 'published', 'publisher',
