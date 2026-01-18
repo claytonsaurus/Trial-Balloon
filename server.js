@@ -245,11 +245,20 @@ async function fetchGhostStories() {
     const allStories = [...googleStories, ...redditStories];
 
     // Filter out entertainment/media content first
-    const realParanormalStories = allStories.filter(story => !isEntertainmentMedia(story));
+    const realParanormalStories = allStories.filter(story => {
+      const isMedia = isEntertainmentMedia(story);
+      if (isMedia) {
+        console.log(`FILTERED: ${story.title.substring(0, 80)}`);
+      }
+      return !isMedia;
+    });
     const filteredCount = allStories.length - realParanormalStories.length;
 
+    console.log(`Total stories found: ${allStories.length}`);
     if (filteredCount > 0) {
       console.log(`Filtered out ${filteredCount} entertainment/media stories`);
+    } else {
+      console.log('No entertainment/media stories detected to filter');
     }
 
     // Process each story
