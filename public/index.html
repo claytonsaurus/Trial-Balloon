@@ -564,20 +564,20 @@
                 },
                 {
                     title: 'Bloom Appears!',
-                    text: 'The Amtrak assistant conductor appears on the horizon, still pursuing you. Bloom is relentless, unstoppable, and very, very angry.',
+                    text: 'CHECK_BLOOM_TEXT',
                     choices: [
-                        { text: 'Fight him off', requireWeapons: true, success: { weapons: -1, morale: -10 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Fight him with weapons', requireWeapons: true, successChance: 0.7, success: { weapons: -1, morale: -5 }, fail: { injureRandom: true, loseSupplies: true, weapons: -1 } },
                         { text: 'Run and hide', effects: { daysLost: 1, morale: -15 } },
-                        { text: 'Attempt to lose him', successChance: 0.6, success: { fuel: -15 }, fail: { injureRandom: true, fuel: -15 } }
+                        { text: 'Attempt to outrun him', requireFuel: 15, successChance: 0.6, success: { fuel: -15 }, fail: { injureRandom: true, fuel: -15, morale: -10 } }
                     ]
                 },
                 {
                     title: 'Bloom\'s Trap',
-                    text: 'You\'ve walked right into a trap set by Bloom. The assistant conductor has been tracking you this whole time.',
+                    text: 'You\'ve walked right into a trap! Bloom steps out from behind abandoned vehicles, blocking your path. He\'s been tracking you, learning your patterns. "End of the line," he says.',
                     choices: [
-                        { text: 'Fight your way out', requireWeapons: true, success: { weapons: -1 }, fail: { injureRandom: true, food: -20 } },
-                        { text: 'Bargain with him', successChance: 0.3, success: { morale: -10 }, fail: { loseSupplies: true } },
-                        { text: 'Create a distraction and flee', effects: { food: -25, fuel: -10 } }
+                        { text: 'Fight your way out with weapons', requireWeapons: true, successChance: 0.6, success: { weapons: -1, morale: -5 }, fail: { injureRandom: true, food: -20, weapons: -1 } },
+                        { text: 'Bargain with him (offer supplies)', successChance: 0.3, success: { food: -30, morale: -10 }, fail: { loseSupplies: true, morale: -20 } },
+                        { text: 'Create a distraction and flee', effects: { food: -25, fuel: -10, daysLost: 1 } }
                     ]
                 },
                 {
@@ -674,7 +674,8 @@
             log: [],
             currentEvent: null,
             nextLandmarkIndex: 0,
-            shopCart: {}
+            shopCart: {},
+            bloomEncountered: false
         };
 
         // Utility functions
@@ -824,7 +825,8 @@
                 log: [],
                 currentEvent: null,
                 nextLandmarkIndex: 0,
-                shopCart: {}
+                shopCart: {},
+                bloomEncountered: false
             };
             render();
         }
@@ -1187,6 +1189,17 @@
         function triggerRandomEvent() {
             const eventPool = Math.random() < 0.6 ? EVENTS.BAD : (Math.random() < 0.5 ? EVENTS.GOOD : EVENTS.NEUTRAL);
             game.currentEvent = JSON.parse(JSON.stringify(randomChoice(eventPool)));
+
+            // Handle dynamic Bloom text
+            if (game.currentEvent.text === 'CHECK_BLOOM_TEXT') {
+                if (!game.bloomEncountered) {
+                    game.currentEvent.text = 'A figure emerges from the distance. It\'s Bloom, the Amtrak assistant conductor. He\'s been following you since you left Chicago. His eyes are cold, determined. He wants something from you, and he\'s not going to stop.';
+                    game.bloomEncountered = true;
+                } else {
+                    game.currentEvent.text = 'Bloom appears again on the horizon. He\'s still pursuing you, relentless and unstoppable. How does he keep finding you?';
+                }
+            }
+
             game.state = GameState.EVENT;
             render();
         }
@@ -1273,6 +1286,15 @@
             let success = true;
             let message = '';
 
+            // Check requirements - if not met, shouldn't be able to click (button should be disabled)
+            // But double-check here as safety
+            if (choice.requireWeapons && game.supplies.weapons < 1) return;
+            if (choice.requireMedkits && game.supplies.medkits < 1) return;
+            if (choice.requireParts && game.supplies.parts < 1) return;
+            if (choice.requireClothes && game.supplies.clothes < 1) return;
+            if (choice.requireFood && game.supplies.food < choice.requireFood) return;
+            if (choice.requireFuel && game.supplies.fuel < choice.requireFuel) return;
+
             // Check for success chance
             if (choice.successChance !== undefined) {
                 success = Math.random() < choice.successChance;
@@ -1282,19 +1304,45 @@
             if (success) {
                 if (choice.success) {
                     applyEffects(choice.success);
-                    message = 'Your choice paid off!';
+                    message = 'Success!';
                 }
                 if (choice.effects) {
                     applyEffects(choice.effects);
                 }
+
+                // Special messages for Bloom encounters
+                if (event.title === 'Bloom Appears!' && choice.text.includes('weapon')) {
+                    addLog('You fought off Bloom with weapons! He retreats, wounded but not defeated.');
+                } else if (event.title === 'Bloom Appears!') {
+                    addLog('You managed to escape Bloom this time. He\'ll be back.');
+                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('weapon')) {
+                    addLog('You fought your way out of Bloom\'s trap! He won\'t make it easy next time.');
+                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('Bargain')) {
+                    addLog('Bloom accepts your offering and lets you pass. For now.');
+                } else if (event.title === 'Bloom\'s Trap') {
+                    addLog('You escaped Bloom\'s trap, but it cost you.');
+                } else {
+                    addLog(`${event.title}: ${choice.text} - Success`);
+                }
             } else {
                 if (choice.fail) {
                     applyEffects(choice.fail);
-                    message = 'Things didn\'t go as planned...';
+                    message = 'Failed!';
+                }
+
+                // Special messages for Bloom encounters on failure
+                if (event.title === 'Bloom Appears!' && choice.text.includes('weapon')) {
+                    addLog('Bloom overpowered you in the fight! Your party is injured.');
+                } else if (event.title === 'Bloom Appears!') {
+                    addLog('Bloom caught up to you! The encounter was costly.');
+                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('weapon')) {
+                    addLog('The fight went badly. Bloom had the advantage.');
+                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('Bargain')) {
+                    addLog('Bloom rejected your offering and took everything anyway!');
+                } else {
+                    addLog(`${event.title}: ${choice.text} - Failed`);
                 }
             }
-
-            addLog(`${event.title}: ${choice.text} - ${success ? 'Success' : 'Failed'}`);
 
             game.currentEvent = null;
             game.state = GameState.TRAVELING;
