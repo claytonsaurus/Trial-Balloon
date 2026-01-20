@@ -524,6 +524,15 @@
                     text: 'Someone\'s doomsday bunker. They prepared for everything except what actually happened.',
                     effects: { food: 25, weapons: 1, clothes: 1 },
                     message: 'Found freeze-dried food, a crossbow, and a hazmat suit!'
+                },
+                {
+                    title: 'Wild Bison',
+                    text: 'An American bison stands in the road ahead. Magnificent. Powerful. In the apocalypse, this is as close to majesty as it gets. The bison approaches cautiously, seems almost... friendly?',
+                    choices: [
+                        { text: 'Name her Ponch and befriend her', effects: { morale: 25, acquirePonch: true } },
+                        { text: 'Try to harvest meat (dangerous)', successChance: 0.4, success: { food: 100 }, fail: { injureRandom: true } },
+                        { text: 'Let her pass peacefully', effects: { morale: 10 } }
+                    ]
                 }
             ],
             BAD: [
@@ -637,6 +646,16 @@
                         { text: 'Join the ritual (dangerous)', successChance: 0.4, success: { morale: 20, healAll: true }, fail: { radiationDamage: true, morale: -25 } },
                         { text: 'Sneak away quietly', successChance: 0.7, success: {}, fail: { morale: -15 } }
                     ]
+                },
+                {
+                    title: 'Monks Eat Ponch',
+                    text: 'The frog-blood monks surround your camp. They\'ve been tracking you... tracking Ponch. "We need sustenance," they say, eyes fixed on your bison companion. Before you can react, they swarm. Ponch fights bravely, but there are too many. They drag her away. You can hear her final bellows in the distance. The monks feast. Ponch is gone.',
+                    requiresPonch: true,
+                    choices: [
+                        { text: 'Mourn Ponch and move on', effects: { losePonch: true, morale: -30, daysLost: 1 } },
+                        { text: 'Attack the monks in revenge', requireWeapons: true, successChance: 0.4, success: { weapons: -1, losePonch: true, morale: -20 }, fail: { catastrophicFailure: true } },
+                        { text: 'Flee in horror', effects: { losePonch: true, morale: -35, fuel: -15 } }
+                    ]
                 }
             ],
             NEUTRAL: [
@@ -714,7 +733,9 @@
             nextLandmarkIndex: 0,
             shopCart: {},
             bloomEncountered: false,
-            lastBloomDay: -10
+            lastBloomDay: -10,
+            hasPonch: false,
+            ponchEncountered: false
         };
 
         // Utility functions
@@ -884,7 +905,9 @@
                 nextLandmarkIndex: 0,
                 shopCart: {},
                 bloomEncountered: false,
-                lastBloomDay: -10
+                lastBloomDay: -10,
+                hasPonch: false,
+                ponchEncountered: false
             };
             render();
         }
@@ -1157,6 +1180,21 @@
   AMTRAK CONDUCTOR`;
             }
 
+            if (encounterTitle === 'Wild Bison' || encounterTitle === 'Ponch the Bison' || encounterTitle === 'Monks Eat Ponch') {
+                return `
+       __
+      /  \\___
+     |  @  @ |
+      \\  __/
+    ___||||____
+   |           |
+   |___________|
+    |  |  |  |
+
+     PONCH
+  (American Bison)`;
+            }
+
             if (encounterTitle === 'Dusters Attack!') {
                 return `
    .-.   .-.   .-.
@@ -1299,7 +1337,11 @@
             } else if (game.distance < 600) {
                 travelNarrative = 'The Mississippi River flows south. Your makeshift boat drifts along. Try not to think about what\'s in the water.';
             } else {
-                travelNarrative = 'One foot in front of the other. The road stretches ahead. Your feet hurt, but you keep walking.';
+                if (game.hasPonch) {
+                    travelNarrative = 'One foot in front of the other. Ponch walks alongside you, her massive frame providing comfort and security. With her by your side, the wasteland feels a little less hostile.';
+                } else {
+                    travelNarrative = 'One foot in front of the other. The road stretches ahead. Your feet hurt, but you keep walking.';
+                }
             }
 
             screen.innerHTML = `
@@ -1410,6 +1452,19 @@ ${getTransportationArt()}
                 return;
             }
 
+            // Check for Ponch the bison encounter (~60% of journey at 780 miles)
+            if (game.distance >= 780 && !game.ponchEncountered) {
+                // Trigger the Wild Bison event
+                const wildBisonEvent = EVENTS.GOOD.find(e => e.title === 'Wild Bison');
+                if (wildBisonEvent) {
+                    game.currentEvent = JSON.parse(JSON.stringify(wildBisonEvent));
+                    game.ponchEncountered = true;
+                    game.state = GameState.EVENT;
+                    render();
+                    return;
+                }
+            }
+
             // Check for landmark
             const nextLandmark = LANDMARKS[game.nextLandmarkIndex];
             if (nextLandmark && game.distance >= nextLandmark.distance) {
@@ -1441,6 +1496,16 @@ ${getTransportationArt()}
             const daysSinceBloom = game.day - game.lastBloomDay;
             if (daysSinceBloom < 7 && eventPool === EVENTS.BAD) {
                 eventPool = eventPool.filter(e => !e.title.includes('Bloom'));
+            }
+
+            // Filter out "Monks Eat Ponch" if Ponch hasn't been acquired
+            if (eventPool === EVENTS.BAD && !game.hasPonch) {
+                eventPool = eventPool.filter(e => e.title !== 'Monks Eat Ponch');
+            }
+
+            // Filter out "Wild Bison" from random events (it's triggered by distance)
+            if (eventPool === EVENTS.GOOD) {
+                eventPool = eventPool.filter(e => e.title !== 'Wild Bison');
             }
 
             game.currentEvent = JSON.parse(JSON.stringify(randomChoice(eventPool)));
@@ -1627,6 +1692,10 @@ ${getEncounterArt(event.title)}
                 return 'He catches you trying to sneak away. "Where are you going?!" he shouts, genuinely hurt. "I haven\'t even shown you my backup generator!" He talks. And talks. And talks. For hours. Then days. You lose track of time. Your party\'s will to live slowly drains away. Eventually, you die of insufferable boredom. Your last thought is about his water filtration system.';
             }
 
+            if (event.title === 'Monks Eat Ponch' && choice.text.includes('Attack')) {
+                return 'You attacked the frog-blood monks in a rage, trying to avenge Ponch. But they were too strong, too many, too prepared. They overwhelmed you easily. Your last thought is of Ponch—brave, loyal Ponch—and how you both deserved better than this. The monks continue their feast. Your journey ends here, in a place soaked with grief and blood.';
+            }
+
             // Generic catastrophic failure
             return 'Your choice proved fatal. The wasteland claims another victim. Your journey ends here, miles from Disney World, in a place nobody will remember.';
         }
@@ -1675,8 +1744,19 @@ ${getEncounterArt(event.title)}
             }
 
             // Dusters
-            if (event.title === 'Dusters Attack!') {
-                if (choice.text.includes('weapon')) {
+            if (event.title === 'Dusters Attack!' || event.title === 'Duster Ambush!') {
+                // If Ponch is present, she helps fight them off
+                if (game.hasPonch && choice.text.includes('weapon')) {
+                    return success
+                        ? 'Ponch charges forward before you even draw your weapon! The bison slams into the Dusters with tremendous force, her massive frame and steel-hard horns making short work of them. You provide covering fire, but Ponch is the real hero here. The Dusters retreat, terrified of your magnificent companion.'
+                        : 'You and Ponch fight side by side against the Dusters. Ponch fights valiantly, crushing several with her powerful charge, but there are too many. Even with Ponch\'s help, you\'re overwhelmed. You barely escape, but Ponch took some hits defending you. Your loyal companion limps alongside you as you retreat.';
+                } else if (game.hasPonch && choice.text.includes('outrun')) {
+                    return success
+                        ? 'You don\'t have time to mount Ponch properly—you just grab her mane and hold on. The bison charges through the wasteland at incredible speed, easily outpacing the Dusters. Who knew bison could run so fast? Ponch saves the day again.'
+                        : 'You try to flee on Ponch, but the Dusters predicted this. They block your path, forcing a confrontation. Ponch fights them off long enough for you to escape, but the encounter costs you fuel and morale.';
+                }
+                // Normal Duster encounter (no Ponch)
+                else if (choice.text.includes('weapon')) {
                     return success
                         ? 'You fight back against the Dusters. Their bones are like steel, but your weapons find their marks. You drive them off, but the fight was costly—ammunition spent, morale shaken.'
                         : 'You engage the Dusters in combat, but there are too many. Their steel-hard bones deflect your attacks. Someone gets injured, supplies are scattered and lost in the fighting. You barely escape with your lives.';
@@ -1712,6 +1792,32 @@ ${getEncounterArt(event.title)}
                         : 'You refuse to cooperate with their 1960s fantasy. They don\'t take it well. "Troublemakers!" they shout, and things get violent. You fight your way out, injured and shaken.';
                 } else {
                     return 'You wait until night, then quietly pack up and slip away while they\'re asleep. You navigate by moonlight, burning extra fuel to get distance. By sunrise, Mayberry is far behind you.';
+                }
+            }
+
+            // Wild Bison
+            if (event.title === 'Wild Bison') {
+                if (choice.text.includes('Ponch')) {
+                    return 'You approach the bison slowly, speaking softly. To your amazement, she doesn\'t flee. Instead, she nuzzles your hand. "Ponch," you say. "Your name is Ponch." From this moment on, Ponch the American bison is part of your journey. She\'s strong, loyal, and surprisingly good at fighting off Dusters. Your party\'s morale soars. With Ponch by your side, maybe you actually have a chance.';
+                } else if (choice.text.includes('harvest')) {
+                    return success
+                        ? 'You take down the bison. It\'s not easy, and it doesn\'t feel good, but you now have enough meat to last weeks. Your party is fed, but the victory feels hollow. That was a magnificent creature.'
+                        : 'You attempt to hunt the bison, but you severely underestimated how dangerous a wild bison can be. She charges, and someone gets trampled. You retreat, injured and ashamed. The bison disappears into the wasteland. You made an enemy today.';
+                } else {
+                    return 'You watch the bison pass by, majestic and free. It\'s a rare moment of beauty in the apocalypse. For a brief moment, the world feels a little less broken. Your party stands in awed silence.';
+                }
+            }
+
+            // Monks Eat Ponch
+            if (event.title === 'Monks Eat Ponch') {
+                if (choice.text.includes('Mourn')) {
+                    return 'You take time to say goodbye to Ponch. She was more than just a bison—she was a companion, a protector, a friend. The monks are long gone, their bellies full. You bury Ponch\'s collar and mark the spot with stones. Your party weeps. The journey continues, but a piece of your heart stays here, in this unmarked place. Ponch deserved better. You all did.';
+                } else if (choice.text.includes('Attack')) {
+                    return success
+                        ? 'Rage fuels you. You attack the monks with everything you have. They\'re caught off-guard, still digesting their meal. You don\'t kill them all, but you make them pay for what they did. Ponch is still gone, but at least you got revenge. The victory is bitter and empty.'
+                        : 'You charge the monks in blind rage, but they were ready. They overpower you easily. You fought for Ponch, but it wasn\'t enough. The monks leave you bleeding in the dirt. Ponch is gone, and you nearly joined her.';
+                } else {
+                    return 'You can\'t bear to watch. You flee, the sounds of the feast echoing behind you. Ponch fought for you so many times. And when she needed you most, you ran. The guilt will haunt you for the rest of the journey. Every night, you\'ll hear her final bellows. Your party is devastated. Disney World doesn\'t seem important anymore.';
                 }
             }
 
@@ -1843,6 +1949,16 @@ ${getEncounterArt(event.title)}
                 game.supplies.food = Math.floor(game.supplies.food * 0.7);
                 game.supplies.fuel = Math.floor(game.supplies.fuel * 0.8);
                 addLog('Lost some supplies!');
+            }
+
+            if (effects.acquirePonch) {
+                game.hasPonch = true;
+                addLog('Ponch the bison joins your party!');
+            }
+
+            if (effects.losePonch) {
+                game.hasPonch = false;
+                addLog('Ponch is gone...');
             }
         }
 
