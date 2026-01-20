@@ -454,6 +454,7 @@
             EVENT: 'event',
             CAMP: 'camp',
             LANDMARK: 'landmark',
+            FINAL_BOSS: 'final_boss',
             GAME_OVER: 'game_over',
             VICTORY: 'victory'
         };
@@ -481,13 +482,13 @@
 
         // Landmarks along the journey (Chicago → St. Louis → Memphis → Mobile → Orlando)
         const LANDMARKS = [
-            { distance: 150, name: 'Joliet, Illinois', description: 'The Amtrak is somehow still running (kind of). Halfway to St. Louis. This might actually work.' },
-            { distance: 300, name: 'St. Louis, Missouri', description: 'The Gateway Arch still stands. End of the line for Amtrak. Time to find a boat and head down the Mississippi.' },
-            { distance: 600, name: 'Memphis, Tennessee', description: 'Graceland is now a Duster nest. Elvis has definitely left the building. Time to ditch the boat and continue on foot.' },
-            { distance: 900, name: 'Birmingham, Alabama', description: 'The long walk continues. Your feet hurt. Everything hurts. But Disney World isn\'t going to walk itself.' },
-            { distance: 1100, name: 'Mobile, Alabama', description: 'The Gulf Coast! You can smell the ocean. Or possibly just decades of rot. Hard to tell anymore.' },
-            { distance: 1250, name: 'Pensacola, Florida', description: 'Welcome to Florida, where the humidity makes the apocalypse even more unbearable. Almost there now.' },
-            { distance: 1300, name: 'Walt Disney World', description: 'The gates of the Magic Kingdom rise before you. Mickey\'s silhouette still visible on the castle. You made it.' }
+            { distance: 150, name: 'Joliet, Illinois', description: 'The Amtrak is somehow still running (kind of). Halfway to St. Louis. Wait... is that Bloom, the assistant conductor, watching from the platform? This might get complicated.' },
+            { distance: 300, name: 'St. Louis, Missouri', description: 'The Gateway Arch still stands. End of the line for Amtrak. Time to find a boat and head down the Mississippi. You swear you saw Bloom in the distance. He\'s following you.' },
+            { distance: 600, name: 'Memphis, Tennessee', description: 'Graceland is now a Duster nest. Elvis has definitely left the building. Time to ditch the boat and continue on foot. Bloom is still on your trail.' },
+            { distance: 900, name: 'Birmingham, Alabama', description: 'The long walk continues. Your feet hurt. Everything hurts. But Disney World isn\'t going to walk itself. And Bloom isn\'t going to stop chasing you.' },
+            { distance: 1100, name: 'Mobile, Alabama', description: 'The Gulf Coast! You can smell the ocean. Or possibly just decades of rot. Hard to tell anymore. Bloom can\'t be far behind.' },
+            { distance: 1250, name: 'Pensacola, Florida', description: 'Welcome to Florida, where the humidity makes the apocalypse even more unbearable. Almost there now. But so is Bloom.' },
+            { distance: 1300, name: 'Walt Disney World', description: 'The gates of the Magic Kingdom rise before you. Mickey\'s silhouette still visible on the castle. But there\'s someone standing at the gates. Bloom.' }
         ];
 
         // Random events
@@ -559,6 +560,24 @@
                         { text: 'Play along with the madness', effects: { daysLost: 2, morale: -10 } },
                         { text: 'Refuse to say "gee willikers"', successChance: 0.4, success: {}, fail: { injureRandom: true } },
                         { text: 'Escape in the night', effects: { fuel: -15 } }
+                    ]
+                },
+                {
+                    title: 'Bloom Appears!',
+                    text: 'The Amtrak assistant conductor appears on the horizon, still pursuing you. Bloom is relentless, unstoppable, and very, very angry.',
+                    choices: [
+                        { text: 'Fight him off', requireWeapons: true, success: { weapons: -1, morale: -10 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Run and hide', effects: { daysLost: 1, morale: -15 } },
+                        { text: 'Attempt to lose him', successChance: 0.6, success: { fuel: -15 }, fail: { injureRandom: true, fuel: -15 } }
+                    ]
+                },
+                {
+                    title: 'Bloom\'s Trap',
+                    text: 'You\'ve walked right into a trap set by Bloom. The assistant conductor has been tracking you this whole time.',
+                    choices: [
+                        { text: 'Fight your way out', requireWeapons: true, success: { weapons: -1 }, fail: { injureRandom: true, food: -20 } },
+                        { text: 'Bargain with him', successChance: 0.3, success: { morale: -10 }, fail: { loseSupplies: true } },
+                        { text: 'Create a distraction and flee', effects: { food: -25, fuel: -10 } }
                     ]
                 },
                 {
@@ -714,6 +733,9 @@
                 case GameState.LANDMARK:
                     renderLandmark(screen);
                     break;
+                case GameState.FINAL_BOSS:
+                    renderFinalBoss(screen);
+                    break;
                 case GameState.GAME_OVER:
                     renderGameOver(screen, false);
                     break;
@@ -745,7 +767,8 @@
                     <p>You're going to <strong>Disney World</strong>.</p>
                     <p>The plan: Amtrak to St. Louis, boat down the Mississippi to Memphis, then walk to Mobile and on to Orlando.</p>
                     <p>1,300 miles through Duster territory, past deranged survivalists, frog-blood monks, and worse.</p>
-                    <p><strong>This is probably a terrible idea.</strong></p>
+                    <p>Oh, and there's an Amtrak assistant conductor named Bloom who will probably try to stop you.</p>
+                    <p><strong>This is definitely a terrible idea.</strong></p>
                 </div>
 
                 <div class="choices">
@@ -1130,9 +1153,9 @@
 
             addLog(`Traveled ${actualDistance} miles.`);
 
-            // Check for victory
+            // Check for final boss / victory
             if (game.distance >= CONFIG.TOTAL_DISTANCE) {
-                game.state = GameState.VICTORY;
+                game.state = GameState.FINAL_BOSS;
                 render();
                 return;
             }
@@ -1552,6 +1575,121 @@
             return false;
         }
 
+        function renderFinalBoss(screen) {
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <div class="ascii-art">
+    ⚡️ ⚡️ ⚡️ ⚡️ ⚡️
+       BLOOM
+    ⚡️ ⚡️ ⚡️ ⚡️ ⚡️
+                </div>
+
+                <h2>FINAL CONFRONTATION</h2>
+
+                <div class="event-text danger-text">
+                    <h3>BLOOM AWAITS</h3>
+                    <p>You've made it to Disney World. The gates are right there. Victory is within reach.</p>
+                    <p>But standing between you and the Magic Kingdom is Bloom, the Amtrak assistant conductor.</p>
+                    <p>He's been chasing you since Joliet. Through St. Louis, down the Mississippi, across Tennessee and Alabama, all the way to Florida.</p>
+                    <p>And now, he's here. At the gates of Disney World. Waiting.</p>
+                    <p>"You didn't think I'd let you just walk into the Magic Kingdom, did you?" he says.</p>
+                </div>
+
+                <div class="narrative">
+                    <p><strong>This is it. The final battle.</strong></p>
+                    <p>You've come 1,300 miles for this. You've survived Dusters, frog-blood monks, deranged survivalists, and the Mayberry Brigade.</p>
+                    <p>One last obstacle stands in your way.</p>
+                </div>
+
+                <h3>How do you face Bloom?</h3>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="fightBloom('weapons')">
+                        [ USE WEAPONS ]
+                        <br><small>${game.supplies.weapons > 0 ? 'You have weapons. Time to use them.' : '⚠️ You have no weapons!'}</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('outsmart')">
+                        [ OUTSMART HIM ]
+                        <br><small>Use your wits instead of violence</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('sacrifice')">
+                        [ SACRIFICE SUPPLIES ]
+                        <br><small>Give him everything you have left</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('talk')">
+                        [ REASON WITH HIM ]
+                        <br><small>Try to talk him down after 1,300 miles of pursuit</small>
+                    </button>
+                </div>
+            `;
+        }
+
+        function fightBloom(method) {
+            let victory = false;
+            let message = '';
+
+            if (method === 'weapons') {
+                if (game.supplies.weapons > 0) {
+                    victory = true;
+                    message = 'You fight Bloom with everything you have. It\'s brutal. It\'s desperate. But somehow, you win. Bloom falls. The gates are open.';
+                } else {
+                    victory = false;
+                    message = 'Without weapons, you don\'t stand a chance. Bloom overpowers you. Your journey ends here, 1,300 miles from home, at the gates of Disney World.';
+                }
+            } else if (method === 'outsmart') {
+                const success = Math.random() < 0.7; // 70% chance
+                if (success) {
+                    victory = true;
+                    message = 'You trick Bloom into chasing a decoy while you slip past. By the time he realizes his mistake, you\'re already inside the Magic Kingdom.';
+                } else {
+                    victory = false;
+                    message = 'Bloom sees through your plan. He\'s been chasing you for 1,300 miles. He knows all your tricks. Your journey ends here.';
+                }
+            } else if (method === 'sacrifice') {
+                victory = true;
+                game.supplies.food = 0;
+                game.supplies.fuel = 0;
+                message = 'You give Bloom everything. All your food, fuel, and supplies. He takes it all and steps aside. "Fine," he says. "Go to your precious Disney World." You won... but at what cost?';
+            } else if (method === 'talk') {
+                const success = Math.random() < 0.4; // 40% chance
+                if (success) {
+                    victory = true;
+                    message = 'You talk about loss, about hope, about why you came all this way. Something in Bloom\'s eyes changes. He steps aside. "Go," he says quietly. "Just... go."';
+                } else {
+                    victory = false;
+                    message = 'Bloom isn\'t interested in talking. He\'s been chasing you for 1,300 miles. Words won\'t stop him now. Your journey ends here.';
+                }
+            }
+
+            if (victory) {
+                const screen = document.getElementById('game-screen');
+                screen.innerHTML = `
+                    <div class="event-text success-text">
+                        <h3>BLOOM DEFEATED</h3>
+                        <p>${message}</p>
+                    </div>
+
+                    <div class="narrative">
+                        <p>The gates of Disney World open before you.</p>
+                        <p>You made it.</p>
+                    </div>
+
+                    <div class="choices">
+                        <button class="choice-btn" onclick="finalVictory()">[ ENTER THE MAGIC KINGDOM ]</button>
+                    </div>
+                `;
+            } else {
+                game.state = GameState.GAME_OVER;
+                render();
+            }
+        }
+
+        function finalVictory() {
+            game.state = GameState.VICTORY;
+            render();
+        }
+
         function renderGameOver(screen, victory) {
             const survivors = getAliveParty();
             const daysTravel = game.day;
@@ -1572,8 +1710,9 @@
                         <div class="narrative">
                             <p>After ${daysTravel} days and ${game.distance} miles of absolute insanity,
                             you finally see the gates of Walt Disney World rise before you.</p>
-                            <p>Cinderella's Castle still stands. Space Mountain is still there. The Haunted Mansion never looked so inviting.</p>
                             <p>You survived Dusters, frog-blood monks, deranged survivalists, and the Mayberry Brigade.</p>
+                            <p>You defeated Bloom, the relentless Amtrak assistant conductor who chased you all the way from Joliet.</p>
+                            <p>Cinderella's Castle still stands. Space Mountain is still there. The Haunted Mansion never looked so inviting.</p>
                             <p>You made it. You actually made it to the Magic Kingdom.</p>
                             <p><strong>Was it worth it? Probably not. But you did it anyway.</strong></p>
                         </div>
