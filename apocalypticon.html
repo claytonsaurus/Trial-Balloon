@@ -531,8 +531,8 @@
                     title: 'Dusters Attack!',
                     text: 'A pack of Dusters emerges! These ravenous former-humans have bones like steel and hunger like… well, like people who haven\'t eaten in three years.',
                     choices: [
-                        { text: 'Fight them off with weapons', requireWeapons: true, success: { weapons: -1 }, fail: { injureRandom: true, loseSupplies: true } },
-                        { text: 'Try to outrun them', success: { fuel: -10 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Fight them off with weapons', requireWeapons: true, successChance: 0.75, success: { weapons: -1 }, fail: { catastrophicFailure: true } },
+                        { text: 'Try to outrun them', successChance: 0.6, success: { fuel: -10 }, fail: { injureRandom: true, loseSupplies: true } },
                         { text: 'Throw food as distraction', effects: { food: -30, morale: -5 } }
                     ]
                 },
@@ -550,7 +550,7 @@
                     text: 'A man in tactical gear stops you. He\'s been waiting for this moment his whole life. He will NOT stop talking about his bunker.',
                     choices: [
                         { text: 'Humor him for 3 hours', effects: { daysLost: 1, morale: -15 } },
-                        { text: 'Try to sneak away mid-rant', successChance: 0.6, fail: { morale: -20 } },
+                        { text: 'Try to sneak away mid-rant', successChance: 0.6, success: {}, fail: { catastrophicFailure: true } },
                         { text: 'Trade supplies for him to leave', effects: { food: -20, fuel: -10 } }
                     ]
                 },
@@ -559,7 +559,7 @@
                     text: 'A town of survivors cosplaying The Andy Griffith Show. They enforce 1960s social norms. With violence.',
                     choices: [
                         { text: 'Play along with the madness', effects: { daysLost: 2, morale: -10 } },
-                        { text: 'Refuse to say "gee willikers"', successChance: 0.4, success: {}, fail: { injureRandom: true } },
+                        { text: 'Refuse to say "gee willikers"', successChance: 0.4, success: {}, fail: { catastrophicFailure: true } },
                         { text: 'Escape in the night', effects: { fuel: -15 } }
                     ]
                 },
@@ -567,7 +567,7 @@
                     title: 'Bloom Appears!',
                     text: 'CHECK_BLOOM_TEXT',
                     choices: [
-                        { text: 'Fight him with weapons', requireWeapons: true, successChance: 0.7, success: { weapons: -1, morale: -5 }, fail: { injureRandom: true, loseSupplies: true, weapons: -1 } },
+                        { text: 'Fight him with weapons', requireWeapons: true, successChance: 0.7, success: { weapons: -1, morale: -5 }, fail: { catastrophicFailure: true } },
                         { text: 'Run and hide', effects: { daysLost: 1, morale: -15 } },
                         { text: 'Attempt to outrun him', requireFuel: 15, successChance: 0.6, success: { fuel: -15 }, fail: { injureRandom: true, fuel: -15, morale: -10 } }
                     ]
@@ -576,7 +576,7 @@
                     title: 'Bloom\'s Trap',
                     text: 'You\'ve walked right into a trap! Bloom steps out from behind abandoned vehicles, blocking your path. He\'s been tracking you, learning your patterns. "End of the line," he says.',
                     choices: [
-                        { text: 'Fight your way out with weapons', requireWeapons: true, successChance: 0.6, success: { weapons: -1, morale: -5 }, fail: { injureRandom: true, food: -20, weapons: -1 } },
+                        { text: 'Fight your way out with weapons', requireWeapons: true, successChance: 0.6, success: { weapons: -1, morale: -5 }, fail: { catastrophicFailure: true } },
                         { text: 'Bargain with him (offer supplies)', successChance: 0.3, success: { food: -30, morale: -10 }, fail: { loseSupplies: true, morale: -20 } },
                         { text: 'Create a distraction and flee', effects: { food: -25, fuel: -10, daysLost: 1 } }
                     ]
@@ -1306,6 +1306,22 @@
                 success = Math.random() < choice.successChance;
             }
 
+            // Check for catastrophic failure
+            if (!success && choice.fail && choice.fail.catastrophicFailure) {
+                const deathMessage = generateDeathMessage(event, choice);
+                game.eventResult = {
+                    title: event.title,
+                    choice: choice.text,
+                    success: false,
+                    message: deathMessage,
+                    fatal: true
+                };
+                game.currentEvent = null;
+                game.state = GameState.EVENT_RESULT;
+                render();
+                return;
+            }
+
             // Apply effects based on success/failure
             if (success) {
                 if (choice.success) applyEffects(choice.success);
@@ -1322,7 +1338,8 @@
                 title: event.title,
                 choice: choice.text,
                 success: success,
-                message: resultMessage
+                message: resultMessage,
+                fatal: false
             };
 
             addLog(`${event.title}: ${choice.text} - ${success ? 'Success' : 'Failed'}`);
@@ -1332,6 +1349,32 @@
 
             if (checkGameOver()) return;
             render();
+        }
+
+        function generateDeathMessage(event, choice) {
+            // Generate custom death messages based on specific encounters
+            if (event.title === 'Bloom Appears!' && choice.text.includes('weapon')) {
+                return 'You tried to fight Bloom, but he was too fast, too skilled, too prepared. He disarmed you in seconds. The last thing you see is his cold, determined eyes as he ends your journey. Bloom wins. You lose. Your quest for Disney World dies here.';
+            }
+
+            if (event.title === 'Bloom\'s Trap' && choice.text.includes('weapon')) {
+                return 'The trap was perfect. Bloom had the high ground, the element of surprise, and no mercy. You fought as hard as you could, but it wasn\'t enough. Bloom stands over you as your vision fades. "I told you," he says quietly. "End of the line." Your journey is over.';
+            }
+
+            if (event.title === 'Dusters Attack!' && choice.text.includes('weapon')) {
+                return 'The Dusters overwhelm you. There are too many of them, and their bones are like steel. You fight desperately, but they pull you down. The last sounds you hear are their ravenous feeding. You were mostly eaten by Dusters. Disney World will have to wait forever.';
+            }
+
+            if (event.title === 'The Mayberry Brigade' && choice.text.includes('Refuse')) {
+                return 'You refused to play along with their twisted 1960s fantasy. "Troublemaker!" they shout. "We don\'t cotton to your kind here!" What follows is violent and final. Your journey ends in a town that shouldn\'t exist, killed by people who think it\'s still 1965. Gee willikers, you\'re dead.';
+            }
+
+            if (event.title === 'Deranged Survivalist' && choice.text.includes('sneak')) {
+                return 'He catches you trying to sneak away. "Where are you going?!" he shouts, genuinely hurt. "I haven\'t even shown you my backup generator!" He talks. And talks. And talks. For hours. Then days. You lose track of time. Your party\'s will to live slowly drains away. Eventually, you die of insufferable boredom. Your last thought is about his water filtration system.';
+            }
+
+            // Generic catastrophic failure
+            return 'Your choice proved fatal. The wasteland claims another victim. Your journey ends here, miles from Disney World, in a place nobody will remember.';
         }
 
         function generateResultMessage(event, choice, success) {
@@ -1427,6 +1470,47 @@
         function renderEventResult(screen) {
             const result = game.eventResult;
 
+            // Fatal encounter - show game over screen
+            if (result.fatal) {
+                screen.innerHTML = `
+                    <div class="game-over">
+                        <div class="ascii-art">
+    _____ ___  ___  ___   _____ _   _ _____
+   |_   _| | | | |   | | | ____| \\ | |  _  \\
+     | | | |_| | |__ | | | |__  |  \\| | | | |
+     | | |  _  | __ \\| | |  __| |     | | | |
+     | | | | | | |__) | |_| |___| |\\  | |/ /
+     \\_/ \\_| |_/\\____/\\___/_____|_| \\_|___/
+                        </div>
+
+                        <h2>GAME OVER</h2>
+
+                        <div class="event-text danger-text">
+                            <h3>${result.title}</h3>
+                            <p><strong>You chose:</strong> ${result.choice}</p>
+                        </div>
+
+                        <div class="narrative">
+                            <p>${result.message}</p>
+                        </div>
+
+                        <div class="stats-display">
+                            <h4>Your Journey Ended:</h4>
+                            <div class="stat-row"><span>Days Survived:</span><span>${game.day}</span></div>
+                            <div class="stat-row"><span>Distance Traveled:</span><span>${game.distance} / ${CONFIG.TOTAL_DISTANCE} miles</span></div>
+                            <div class="stat-row"><span>Party Members Lost:</span><span>${game.party.filter(m => !m.alive).length}/${game.party.length}</span></div>
+                        </div>
+
+                        <div class="choices">
+                            <button class="choice-btn" onclick="startGame()">[ TRY AGAIN ]</button>
+                            <button class="choice-btn" onclick="game.state = GameState.TITLE; render()">[ MAIN MENU ]</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Normal result screen
             screen.innerHTML = `
                 ${renderStatusBar()}
 
