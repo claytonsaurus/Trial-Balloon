@@ -479,15 +479,15 @@
             { id: 'clothes', name: 'Rad Suits', price: 50, unit: 'suits', description: 'Protection from radiation' }
         ];
 
-        // Landmarks along the journey (Chicago to Disney World)
+        // Landmarks along the journey (Chicago → St. Louis → Memphis → Mobile → Orlando)
         const LANDMARKS = [
-            { distance: 200, name: 'Gary, Indiana', description: 'Somehow, Gary looks exactly the same as it did before the apocalypse. This is either very reassuring or deeply unsettling.' },
-            { distance: 400, name: 'Indianapolis Speedway', description: 'The racetrack is now home to a group of survivors who ride lawn mowers in endless circles. They seem happy, though.' },
-            { distance: 600, name: 'Louisville', description: 'The smell of bourbon still hangs in the air. Every building is a distillery. Every person is slightly drunk. Paradise or purgatory?' },
-            { distance: 800, name: 'Nashville', description: 'Country music plays from speakers mounted on poles. Nobody knows who\'s still broadcasting or why. The music never stops.' },
-            { distance: 1000, name: 'Atlanta', description: 'The highway is completely clogged with abandoned cars. Some of them have skeletons still gripping the steering wheels, frozen mid-honk.' },
-            { distance: 1200, name: 'South of the Border', description: 'The kitschy roadside attraction somehow survived. Pedro still waves from his sombrero. Nothing else makes sense anymore.' },
-            { distance: 1300, name: 'Walt Disney World', description: 'The gates of the Magic Kingdom rise before you. Mickey\'s silhouette is still visible on the castle. You made it.' }
+            { distance: 150, name: 'Joliet, Illinois', description: 'The Amtrak is somehow still running (kind of). Halfway to St. Louis. This might actually work.' },
+            { distance: 300, name: 'St. Louis, Missouri', description: 'The Gateway Arch still stands. End of the line for Amtrak. Time to find a boat and head down the Mississippi.' },
+            { distance: 600, name: 'Memphis, Tennessee', description: 'Graceland is now a Duster nest. Elvis has definitely left the building. Time to ditch the boat and continue on foot.' },
+            { distance: 900, name: 'Birmingham, Alabama', description: 'The long walk continues. Your feet hurt. Everything hurts. But Disney World isn\'t going to walk itself.' },
+            { distance: 1100, name: 'Mobile, Alabama', description: 'The Gulf Coast! You can smell the ocean. Or possibly just decades of rot. Hard to tell anymore.' },
+            { distance: 1250, name: 'Pensacola, Florida', description: 'Welcome to Florida, where the humidity makes the apocalypse even more unbearable. Almost there now.' },
+            { distance: 1300, name: 'Walt Disney World', description: 'The gates of the Magic Kingdom rise before you. Mickey\'s silhouette still visible on the castle. You made it.' }
         ];
 
         // Random events
@@ -752,6 +752,7 @@
                     <p>You've been holed up in Chicago, watching civilization crumble. Your family is gone. Your friends are gone. Society is definitely gone.</p>
                     <p>It's time to do something completely irrational.</p>
                     <p>You're going to <strong>Disney World</strong>.</p>
+                    <p>The plan: Amtrak to St. Louis, boat down the Mississippi to Memphis, then walk to Mobile and on to Orlando.</p>
                     <p>1,300 miles through Duster territory, past deranged survivalists, frog-blood monks, and worse.</p>
                     <p><strong>This is probably a terrible idea.</strong></p>
                 </div>
@@ -831,7 +832,8 @@
                 <div class="narrative">
                     <p>Before you leave Chicago, you need to gather your party and whatever supplies you can scrounge.</p>
                     <p>You have <strong>$${game.money}</strong> worth of salvage to trade.</p>
-                    <p>Choose your companions wisely. The road to Disney World is long, and Dusters don't take vacation days.</p>
+                    <p>The journey ahead: Train to St. Louis. Boat to Memphis. Then walk the rest of the way.</p>
+                    <p>Choose your companions wisely. Disney World is 1,300 miles away, and Dusters don't take vacation days.</p>
                 </div>
 
                 <div class="choices">
@@ -1030,11 +1032,21 @@
             const nextLandmark = LANDMARKS[game.nextLandmarkIndex];
             const distanceToLandmark = nextLandmark ? nextLandmark.distance - game.distance : CONFIG.TOTAL_DISTANCE - game.distance;
 
+            // Determine mode of transportation based on distance
+            let travelNarrative = '';
+            if (game.distance < 300) {
+                travelNarrative = 'The Amtrak chugs along the tracks. Surprisingly, the train still works. Sort of.';
+            } else if (game.distance < 600) {
+                travelNarrative = 'The Mississippi River flows south. Your makeshift boat drifts along. Try not to think about what\'s in the water.';
+            } else {
+                travelNarrative = 'One foot in front of the other. The road stretches ahead. Your feet hurt, but you keep walking.';
+            }
+
             screen.innerHTML = `
                 ${renderStatusBar()}
 
                 <div class="narrative">
-                    <p>The highway stretches ahead. Abandoned cars. Empty billboards. The occasional Duster in the distance.</p>
+                    <p>${travelNarrative}</p>
                     ${nextLandmark ? `<p>Next landmark: <strong>${nextLandmark.name}</strong> (${distanceToLandmark} miles)</p>` : '<p>Disney World is close. You can almost smell the churros.</p>'}
                 </div>
 
