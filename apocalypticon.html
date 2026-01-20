@@ -1069,128 +1069,139 @@
             if (game.distance < 300) {
                 // Amtrak Train
                 return `
-      ====        ______
-  _D _|  |_______/  |_\\_____
-   |(_)---  |   H\\__________|
-   /     |  |   H  |  |     |
-  |      |  |   H  |__----__|
-  | ________|___H__/__|_____/
-  |/ |   H_|___|  |__________|
-      |  |      |  |  |   |
-     /__/       /__/  |   |
-    /___\\_____  /___\\__|  |
-               \\/      /  /
-                      /__/`;
+        ___________
+    ,-'___________'-,
+   |   AMTRAK      |
+  |  ===========   |
+  |  | | | | | |   |
+   \\ |_|_|_|_|_|  /
+    \\___________/
+     O         O
+
+   RIDING THE RAILS`;
             } else if (game.distance < 600) {
                 // Boat on Mississippi
                 return `
-              |    |    |
-             )_)  )_)  )_)
-            )___))___))___))
-           )____)____)_____))
-         _____|____|____|____))_
----------\\                   /---------
-  ^^^^^ ^^^^^^^^^^^^^^^^^^^^^
-    ^^^^      ^^^^     ^^^    ^^
-         ^^^^      ^^^`;
+         |\\
+         | \\
+    _____|__\\____
+   |____________|
+   |  BOAT  TO  |
+   | MEMPHIS    |
+    \\_________/
+  ~~~~~~~~~~~~~~
+ ~~~MISSISSIPPI~~~
+  ~~~~~~~~~~~~~~`;
             } else {
                 // Walking on foot
                 return `
-    O       O       O
-   /|\\     /|\\     /|\\
-   / \\     / \\     / \\
+    O    O    O
+   /|\\  /|\\  /|\\
+   / \\  / \\  / \\
 
-  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  The long walk continues...`;
+  YOUR  PARTY
+  ON   FOOT`;
             }
         }
 
         function getEncounterArt(encounterTitle) {
             if (encounterTitle === 'Bloom Appears!' || encounterTitle === 'Bloom\'s Trap') {
                 return `
-     _____
-    |     |
-    | O O |  BLOOM
-    |  ^  |  Assistant Conductor
+     .---.
+    | o o |
+    |  >  |  <- BLOOM
     | \\_/ |
-    |_____|
-      | |
-      | |
-     /   \\`;
+     \\___/
+     || ||
+     || ||
+    ===+===
+
+  AMTRAK CONDUCTOR`;
             }
 
             if (encounterTitle === 'Dusters Attack!') {
                 return `
-   ☠     ☠     ☠
-  /|\\   /|\\   /|\\
-  / \\   / \\   / \\
+   .-.   .-.   .-.
+  (o.o) (o.o) (o.o)
+   > ^ < > ^ < > ^ <
 
-  RAVENOUS DUSTERS
+    DUSTERS!
   (Bones like steel)`;
             }
 
             if (encounterTitle === 'Frog-Blood Monks') {
                 return `
-    _____
-   /     \\
-  | () () |
-  |   ^   |  🐸
-  | \\___/ |
-   \\_____/
-    /   \\
+      ___
+     /   \\
+    | @ @ |
+    |  o  |
+     \\___/
+     /   \\
+    |     |
 
-  "Drink the frog blood..."`;
+  FROG-BLOOD MONK`;
             }
 
             if (encounterTitle === 'Deranged Survivalist') {
                 return `
      [===]
     | O O |
-    |  -  |  "Let me tell you
-    | \\_/ |   about my bunker..."
-    |_|||_|
-     | | |
-     | | |
-    /| |\\`;
+    |  _  |
+    |_| |_|
+     |   |
+    /|   |\\
+
+  "LET ME TELL YOU
+   ABOUT MY BUNKER"`;
             }
 
             if (encounterTitle === 'The Mayberry Brigade') {
                 return `
-      _____
-     | o o |  "Gee willikers!"
-     |  >  |
-     | \\_/ |
-     |-----|
-      |   |
+      .---.
+     | ^_^ |
+     |  o  |
+      \\___/
       |   |
      /|   |\\
 
-   1960s SOCIAL NORMS
-      ENFORCED`;
+  "GEE WILLIKERS!"
+   1960s ENFORCER`;
+            }
+
+            if (encounterTitle === 'Abandoned Costco') {
+                return `
+   _______________
+  |  C O S T C O  |
+  |   ___   ___   |
+  |  |   | |   |  |
+  |__|___|_|___|__|
+
+  BULK SUPPLIES!`;
             }
 
             // Generic encounter
             return `
-        !
-       !!!
-      !!!!!
-       !!!
-        !`;
+       !
+      !!!
+     !!!!!
+      !!!
+       !
+
+   ENCOUNTER!`;
         }
 
         function getLandmarkArt(landmarkName) {
             if (landmarkName === 'Walt Disney World') {
                 return `
-           🏰
-          /|\\
-         / | \\
-        /  |  \\
-       |  🐭  |
-        \\     /
-         \\___/
+       /\\
+      /  \\
+     / () \\
+    /______\\
+    |      |
+    | PARK |
+    |______|
 
-    MAGIC KINGDOM
-    You made it!`;
+  DISNEY WORLD!`;
             }
 
             if (landmarkName.includes('St. Louis')) {
@@ -1199,42 +1210,44 @@
        /  \\
       /    \\
      /      \\
-    /        \\
-   /__________\\
+    /__    __\\
 
-   Gateway Arch`;
+   GATEWAY ARCH`;
             }
 
             if (landmarkName.includes('Memphis')) {
                 return `
-    ______
-   |  GP  |
-   |______|
-   | [==] |
-   |______|
+    .---------.
+    | GRACE-  |
+    |  LAND   |
+    |   ___   |
+    |  |   |  |
+    '--|___|--'
 
-   GRACELAND
-   (Now a Duster nest)`;
+  ELVIS COUNTRY
+ (Now Duster nest)`;
             }
 
             if (landmarkName.includes('Mobile')) {
                 return `
-   ~  ~  ~  ~
-  ~ ~ ~ ~ ~ ~
- ~ ~ ~ ~ ~ ~ ~
-  ~ ~ ~ ~ ~ ~
-   ~  ~  ~  ~
+   ~  ~  ~  ~  ~
+  ~ ~ ~ ~ ~ ~ ~
+ ~ ~ ~ ~ ~ ~ ~ ~
+  ~ ~ ~ ~ ~ ~ ~
+   ~  ~  ~  ~  ~
 
-  Gulf Coast`;
+  GULF COAST`;
             }
 
             // Generic landmark
             return `
-     /\\
-    /  \\
-   /----\\
-  /      \\
-  --------`;
+      /\\
+     /  \\
+    / || \\
+   /  ||  \\
+  /_______\\
+
+   LANDMARK`;
         }
 
         function renderTravel(screen) {
