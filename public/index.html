@@ -536,10 +536,10 @@
                 },
                 {
                     title: 'Frog-Blood Monks',
-                    text: 'A robed cult blocks the road. They worship frogs. They drink frog blood. They smell like frogs. It\'s a whole thing.',
+                    text: 'A robed cult blocks the road. They drink frog blood to trigger spontaneous gender changes. Yes, really. They smell like frogs. It\'s extremely unsettling.',
                     choices: [
                         { text: 'Politely decline their invitation to join', effects: { morale: -5 } },
-                        { text: 'Accept some "holy frog water"', successChance: 0.5, success: { healAll: true }, fail: { radiationDamage: true } },
+                        { text: 'Accept some frog blood (risky)', successChance: 0.5, success: { healAll: true }, fail: { radiationDamage: true } },
                         { text: 'Drive through quickly', effects: { fuel: -15, morale: -10 } }
                     ]
                 },
@@ -566,15 +566,6 @@
                     text: 'You discover your food stash is compromised. Even Twinkies have an expiration date, apparently.',
                     effects: { food: -20, morale: -10 },
                     message: 'The apocalypse has officially gone too far.'
-                },
-                {
-                    title: 'Political Rally',
-                    text: 'You encounter a group of Dusters in business suits, endlessly repeating campaign slogans. It\'s unclear if this is better or worse than regular Dusters.',
-                    choices: [
-                        { text: 'Sneak past during a filibuster', successChance: 0.7, fail: { injureRandom: true } },
-                        { text: 'Use weapons to clear a path', requireWeapons: true, success: { weapons: -1 }, fail: { loseSupplies: true } },
-                        { text: 'Try to debate them', effects: { morale: -25, daysLost: 1 } }
-                    ]
                 },
                 {
                     title: 'Flying Monkey Aftermath',
