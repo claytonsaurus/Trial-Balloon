@@ -452,6 +452,7 @@
             SHOP: 'shop',
             TRAVELING: 'traveling',
             EVENT: 'event',
+            EVENT_RESULT: 'event_result',
             CAMP: 'camp',
             LANDMARK: 'landmark',
             FINAL_BOSS: 'final_boss',
@@ -673,6 +674,7 @@
             travelSpeed: 1,
             log: [],
             currentEvent: null,
+            eventResult: null,
             nextLandmarkIndex: 0,
             shopCart: {},
             bloomEncountered: false
@@ -727,6 +729,9 @@
                     break;
                 case GameState.EVENT:
                     renderEvent(screen);
+                    break;
+                case GameState.EVENT_RESULT:
+                    renderEventResult(screen);
                     break;
                 case GameState.CAMP:
                     renderCamp(screen);
@@ -824,6 +829,7 @@
                 travelSpeed: 1,
                 log: [],
                 currentEvent: null,
+                eventResult: null,
                 nextLandmarkIndex: 0,
                 shopCart: {},
                 bloomEncountered: false
@@ -1284,7 +1290,7 @@
             const event = game.currentEvent;
             const choice = event.choices[choiceIndex];
             let success = true;
-            let message = '';
+            let resultMessage = '';
 
             // Check requirements - if not met, shouldn't be able to click (button should be disabled)
             // But double-check here as safety
@@ -1302,52 +1308,146 @@
 
             // Apply effects based on success/failure
             if (success) {
-                if (choice.success) {
-                    applyEffects(choice.success);
-                    message = 'Success!';
-                }
-                if (choice.effects) {
-                    applyEffects(choice.effects);
-                }
-
-                // Special messages for Bloom encounters
-                if (event.title === 'Bloom Appears!' && choice.text.includes('weapon')) {
-                    addLog('You fought off Bloom with weapons! He retreats, wounded but not defeated.');
-                } else if (event.title === 'Bloom Appears!') {
-                    addLog('You managed to escape Bloom this time. He\'ll be back.');
-                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('weapon')) {
-                    addLog('You fought your way out of Bloom\'s trap! He won\'t make it easy next time.');
-                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('Bargain')) {
-                    addLog('Bloom accepts your offering and lets you pass. For now.');
-                } else if (event.title === 'Bloom\'s Trap') {
-                    addLog('You escaped Bloom\'s trap, but it cost you.');
-                } else {
-                    addLog(`${event.title}: ${choice.text} - Success`);
-                }
+                if (choice.success) applyEffects(choice.success);
+                if (choice.effects) applyEffects(choice.effects);
             } else {
-                if (choice.fail) {
-                    applyEffects(choice.fail);
-                    message = 'Failed!';
-                }
+                if (choice.fail) applyEffects(choice.fail);
+            }
 
-                // Special messages for Bloom encounters on failure
-                if (event.title === 'Bloom Appears!' && choice.text.includes('weapon')) {
-                    addLog('Bloom overpowered you in the fight! Your party is injured.');
-                } else if (event.title === 'Bloom Appears!') {
-                    addLog('Bloom caught up to you! The encounter was costly.');
-                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('weapon')) {
-                    addLog('The fight went badly. Bloom had the advantage.');
-                } else if (event.title === 'Bloom\'s Trap' && choice.text.includes('Bargain')) {
-                    addLog('Bloom rejected your offering and took everything anyway!');
-                } else {
-                    addLog(`${event.title}: ${choice.text} - Failed`);
+            // Generate detailed result messages based on event type and outcome
+            resultMessage = generateResultMessage(event, choice, success);
+
+            // Store result and transition to result screen
+            game.eventResult = {
+                title: event.title,
+                choice: choice.text,
+                success: success,
+                message: resultMessage
+            };
+
+            addLog(`${event.title}: ${choice.text} - ${success ? 'Success' : 'Failed'}`);
+
+            game.currentEvent = null;
+            game.state = GameState.EVENT_RESULT;
+
+            if (checkGameOver()) return;
+            render();
+        }
+
+        function generateResultMessage(event, choice, success) {
+            // Bloom encounters
+            if (event.title === 'Bloom Appears!') {
+                if (choice.text.includes('weapon')) {
+                    return success
+                        ? 'You draw your weapon and engage Bloom in combat. It\'s brutal and fast. You manage to land a solid hit, forcing him to retreat into the ruins. Blood trails behind him, but you know he\'ll be back.'
+                        : 'You try to fight Bloom, but he\'s too fast, too skilled. He disarms you and lands several blows before you manage to break away and run. Your party is injured, and some supplies were lost in the chaos.';
+                } else if (choice.text.includes('hide')) {
+                    return 'You signal everyone to scatter and hide among the wreckage. You can hear Bloom searching, calling out threats. It takes hours before he finally gives up and moves on. You\'ve lost time, but avoided direct confrontation.';
+                } else if (choice.text.includes('outrun')) {
+                    return success
+                        ? 'You gun the engine and speed away, weaving through obstacles. Bloom gives chase but can\'t keep up. You burn fuel getting away, but you lost him... for now.'
+                        : 'You try to outrun Bloom, but he anticipated this. He cuts you off, forcing a confrontation. The encounter leaves your party injured and your fuel reserves depleted.';
                 }
             }
 
-            game.currentEvent = null;
-            game.state = GameState.TRAVELING;
+            if (event.title === 'Bloom\'s Trap') {
+                if (choice.text.includes('weapon')) {
+                    return success
+                        ? 'It\'s an ambush, but you were ready. You fight your way through Bloom\'s trap, using your weapons to create an opening. You escape, but the fight cost you ammunition and morale.'
+                        : 'Bloom had the high ground, the element of surprise. The fight goes badly. You lose weapons, supplies, and someone got hurt. You barely make it out.';
+                } else if (choice.text.includes('Bargain')) {
+                    return success
+                        ? 'You offer Bloom food and supplies. He considers it, then takes what you offered. "This buys you one day," he says coldly. "Then I\'m coming for you again." He lets you pass.'
+                        : 'You try to bargain, but Bloom just laughs. "I don\'t need your permission to take what I want." He attacks anyway, taking everything you offered and more.';
+                } else {
+                    return 'You create a distraction—setting off a car alarm, starting a small fire. While Bloom investigates, you slip away. It cost you supplies and time, but you\'re free of the trap.';
+                }
+            }
 
-            if (checkGameOver()) return;
+            // Deranged Survivalist
+            if (event.title === 'Deranged Survivalist') {
+                if (choice.text.includes('Humor')) {
+                    return 'You spend three excruciating hours listening to detailed explanations of his water filtration system, freeze-dried food rotation schedule, and theories about government conspiracies. Your party\'s morale takes a hit, but eventually he lets you go.';
+                } else if (choice.text.includes('sneak')) {
+                    return success
+                        ? 'While he\'s mid-sentence about his ammunition stockpile, you slowly back away. He\'s so absorbed in his own monologue that he doesn\'t notice you slipping into the shadows and escaping.'
+                        : 'You try to sneak away, but he notices. "Where are you going?! I haven\'t even told you about my backup generator system!" He becomes aggressive, hurt by your rejection. The confrontation damages morale significantly.';
+                } else {
+                    return 'You offer him some supplies in exchange for his silence and a clear path. He eagerly accepts, immediately launching into a new monologue about how to properly store the food you just gave him. At least you\'re moving again.';
+                }
+            }
+
+            // Dusters
+            if (event.title === 'Dusters Attack!') {
+                if (choice.text.includes('weapon')) {
+                    return success
+                        ? 'You fight back against the Dusters. Their bones are like steel, but your weapons find their marks. You drive them off, but the fight was costly—ammunition spent, morale shaken.'
+                        : 'You engage the Dusters in combat, but there are too many. Their steel-hard bones deflect your attacks. Someone gets injured, supplies are scattered and lost in the fighting. You barely escape with your lives.';
+                } else if (choice.text.includes('outrun')) {
+                    return success
+                        ? 'You floor it, tires screaming. The Dusters give chase, their ravenous screams fading as you put distance between you and them. You burned through fuel, but you\'re alive.'
+                        : 'You try to outrun them, but they\'re faster than you expected. They catch up, attacking the vehicle. You escape, but not before suffering injuries and losing precious fuel.';
+                } else {
+                    return 'You throw food out the back. The Dusters immediately turn on each other, fighting over the scraps. You use the distraction to escape. It\'s expensive, but effective. The image of them feeding haunts your party.';
+                }
+            }
+
+            // Frog-Blood Monks
+            if (event.title === 'Frog-Blood Monks') {
+                if (choice.text.includes('decline')) {
+                    return 'You politely but firmly decline their invitation. They seem disappointed but accepting. "The frog blood calls to all eventually," one says cryptically as they part. The encounter was unsettling.';
+                } else if (choice.text.includes('Accept')) {
+                    return success
+                        ? 'Against your better judgment, you try some of their frog blood concoction. It tastes absolutely horrible, but... you actually feel better? Healthier? Your party is disturbed but can\'t deny the results.'
+                        : 'You drink the frog blood. Big mistake. Within minutes, everyone who drank it feels violently ill. The monks just watch silently as your party retches and suffers from what might be radiation poisoning or worse.';
+                } else {
+                    return 'You punch the accelerator and drive straight through their gathering. They scatter, shouting about "forsaking the sacred transformation." You escape, but burned fuel and rattled everyone\'s nerves.';
+                }
+            }
+
+            // Mayberry Brigade
+            if (event.title === 'The Mayberry Brigade') {
+                if (choice.text.includes('Play along')) {
+                    return 'You spend two days in their twisted 1960s fantasy. You say "gosh" and "golly" and pretend everything is wholesome. It\'s psychologically exhausting, but they eventually let you leave with a basket of (possibly expired) pie.';
+                } else if (choice.text.includes('Refuse')) {
+                    return success
+                        ? 'You refuse to play their game. "This is insane," you say. There\'s a tense moment... then their leader laughs. "Fair enough. You\'ve got spine. Get out of our town." You leave, surprised to still be alive.'
+                        : 'You refuse to cooperate with their 1960s fantasy. They don\'t take it well. "Troublemakers!" they shout, and things get violent. You fight your way out, injured and shaken.';
+                } else {
+                    return 'You wait until night, then quietly pack up and slip away while they\'re asleep. You navigate by moonlight, burning extra fuel to get distance. By sunrise, Mayberry is far behind you.';
+                }
+            }
+
+            // Generic fallback
+            return success
+                ? 'Your choice paid off. You move forward, a little wiser, a little more scarred.'
+                : 'Things didn\'t go as planned. You move on, nursing wounds and losses.';
+        }
+
+        function renderEventResult(screen) {
+            const result = game.eventResult;
+
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <div class="event-text ${result.success ? 'success-text' : 'danger-text'}">
+                    <h3>${result.success ? 'SUCCESS' : 'FAILURE'}</h3>
+                    <p><strong>You chose:</strong> ${result.choice}</p>
+                </div>
+
+                <div class="narrative">
+                    <p>${result.message}</p>
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="continueFromResult()">[ CONTINUE JOURNEY ]</button>
+                </div>
+            `;
+        }
+
+        function continueFromResult() {
+            game.eventResult = null;
+            game.state = GameState.TRAVELING;
             render();
         }
 
