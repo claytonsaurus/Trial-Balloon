@@ -601,6 +601,42 @@
                         { text: 'Find alternate route', effects: { fuel: -20 } },
                         { text: 'Attempt to drive over the cars', successChance: 0.5, success: {}, fail: { parts: -1, injureRandom: true } }
                     ]
+                },
+                {
+                    title: 'Duster Ambush!',
+                    text: 'Dusters have been tracking you for miles. Now they attack in force.',
+                    choices: [
+                        { text: 'Stand and fight', requireWeapons: true, successChance: 0.65, success: { weapons: -1, morale: -10 }, fail: { catastrophicFailure: true } },
+                        { text: 'Flee immediately', effects: { fuel: -20, morale: -15 } },
+                        { text: 'Throw food and run', effects: { food: -40, fuel: -10 } }
+                    ]
+                },
+                {
+                    title: 'Radiation Sickness',
+                    text: 'Someone in your party is showing signs of radiation poisoning. They need help fast.',
+                    choices: [
+                        { text: 'Use medical supplies', requireMedkits: true, success: { medkits: -1 } },
+                        { text: 'Rest and hope they recover', effects: { daysLost: 2, deathChance: 0.3 } },
+                        { text: 'Keep pushing forward', effects: { deathChance: 0.5, morale: -20 } }
+                    ]
+                },
+                {
+                    title: 'Bandits',
+                    text: 'Armed scavengers demand your supplies. They have you surrounded.',
+                    choices: [
+                        { text: 'Fight them', requireWeapons: true, successChance: 0.5, success: { weapons: -1 }, fail: { loseSupplies: true, injureRandom: true } },
+                        { text: 'Give them half your food', effects: { food: -40, morale: -10 } },
+                        { text: 'Try to negotiate', successChance: 0.3, success: { food: -20 }, fail: { loseSupplies: true } }
+                    ]
+                },
+                {
+                    title: 'Frog-Blood Ritual',
+                    text: 'You stumble upon a frog-blood monk ceremony. They insist you participate.',
+                    choices: [
+                        { text: 'Politely refuse and leave', effects: { morale: -10, daysLost: 1 } },
+                        { text: 'Join the ritual (dangerous)', successChance: 0.4, success: { morale: 20, healAll: true }, fail: { radiationDamage: true, morale: -25 } },
+                        { text: 'Sneak away quietly', successChance: 0.7, success: {}, fail: { morale: -15 } }
+                    ]
                 }
             ],
             NEUTRAL: [
@@ -677,7 +713,8 @@
             eventResult: null,
             nextLandmarkIndex: 0,
             shopCart: {},
-            bloomEncountered: false
+            bloomEncountered: false,
+            lastBloomDay: -10
         };
 
         // Utility functions
@@ -846,7 +883,8 @@
                 eventResult: null,
                 nextLandmarkIndex: 0,
                 shopCart: {},
-                bloomEncountered: false
+                bloomEncountered: false,
+                lastBloomDay: -10
             };
             render();
         }
@@ -1397,11 +1435,19 @@ ${getTransportationArt()}
         }
 
         function triggerRandomEvent() {
-            const eventPool = Math.random() < 0.6 ? EVENTS.BAD : (Math.random() < 0.5 ? EVENTS.GOOD : EVENTS.NEUTRAL);
+            let eventPool = Math.random() < 0.6 ? EVENTS.BAD : (Math.random() < 0.5 ? EVENTS.GOOD : EVENTS.NEUTRAL);
+
+            // Filter out Bloom events if he appeared recently (within last 7 days)
+            const daysSinceBloom = game.day - game.lastBloomDay;
+            if (daysSinceBloom < 7 && eventPool === EVENTS.BAD) {
+                eventPool = eventPool.filter(e => !e.title.includes('Bloom'));
+            }
+
             game.currentEvent = JSON.parse(JSON.stringify(randomChoice(eventPool)));
 
-            // Handle dynamic Bloom text
+            // Handle dynamic Bloom text and track when he appears
             if (game.currentEvent.text === 'CHECK_BLOOM_TEXT') {
+                game.lastBloomDay = game.day; // Track this appearance
                 if (!game.bloomEncountered) {
                     game.currentEvent.text = 'A figure emerges from the distance. It\'s Bloom, the Amtrak assistant conductor. He\'s been following you since you left Chicago. His eyes are cold, determined. He wants something from you, and he\'s not going to stop.';
                     game.bloomEncountered = true;
