@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apocalypticon - A Text Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'Terminal';
+            src: local('Courier New'), local('Consolas'), local('monospace');
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #33ff33;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        #game-container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #0d0d0d;
+            border: 3px solid #33ff33;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(51, 255, 51, 0.3),
+                        inset 0 0 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+        }
+
+        #crt-flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #33ff33;
+            letter-spacing: 4px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            color: #22aa22;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #22aa22;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        #game-screen {
+            min-height: 400px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .ascii-art {
+            white-space: pre;
+            font-size: 0.7em;
+            line-height: 1.2;
+            text-align: center;
+            margin: 20px 0;
+            color: #33ff33;
+            text-shadow: 0 0 5px #33ff33;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #33ff33;
+            background-color: rgba(51, 255, 51, 0.05);
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.8em;
+            color: #22aa22;
+        }
+
+        .status-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .status-value.critical {
+            color: #ff3333;
+            animation: pulse 1s infinite;
+        }
+
+        .status-value.warning {
+            color: #ffaa33;
+        }
+
+        .status-value.good {
+            color: #33ff33;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .narrative {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 3px solid #33ff33;
+            background-color: rgba(51, 255, 51, 0.05);
+        }
+
+        .event-text {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: rgba(255, 170, 51, 0.1);
+            border: 1px solid #ffaa33;
+            color: #ffaa33;
+        }
+
+        .danger-text {
+            color: #ff3333;
+            border-color: #ff3333;
+            background-color: rgba(255, 51, 51, 0.1);
+        }
+
+        .success-text {
+            color: #33ff33;
+            border-color: #33ff33;
+            background-color: rgba(51, 255, 51, 0.1);
+        }
+
+        .choices {
+            margin: 20px 0;
+        }
+
+        .choice-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            margin: 10px 0;
+            background-color: transparent;
+            border: 2px solid #33ff33;
+            color: #33ff33;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .choice-btn:hover {
+            background-color: #33ff33;
+            color: #0a0a0a;
+            box-shadow: 0 0 15px rgba(51, 255, 51, 0.5);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .choice-btn:disabled:hover {
+            background-color: transparent;
+            color: #33ff33;
+            box-shadow: none;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #22aa22;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background-color: #0a0a0a;
+            border: 2px solid #33ff33;
+            color: #33ff33;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1em;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.5);
+        }
+
+        .party-list {
+            margin: 20px 0;
+        }
+
+        .party-member {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #33ff33;
+            background-color: rgba(51, 255, 51, 0.05);
+        }
+
+        .party-member.dead {
+            border-color: #ff3333;
+            opacity: 0.5;
+        }
+
+        .party-member.sick {
+            border-color: #ffaa33;
+        }
+
+        .member-name {
+            font-weight: bold;
+        }
+
+        .member-status {
+            font-size: 0.9em;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #33ff33;
+        }
+
+        .shop-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .shop-btn {
+            width: 30px;
+            height: 30px;
+            background-color: transparent;
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .shop-btn:hover {
+            background-color: #33ff33;
+            color: #0a0a0a;
+        }
+
+        .money-display {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px solid #33ff33;
+            background-color: rgba(51, 255, 51, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #0a0a0a;
+            border: 1px solid #33ff33;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #33ff33;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.danger {
+            background-color: #ff3333;
+        }
+
+        .progress-fill.warning {
+            background-color: #ffaa33;
+        }
+
+        .day-counter {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 10px 0;
+            color: #22aa22;
+        }
+
+        .location-display {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px dashed #33ff33;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px dotted #1a661a;
+            font-size: 0.9em;
+        }
+
+        .game-over {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .game-over h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .game-over.victory h2 {
+            color: #33ff33;
+            text-shadow: 0 0 20px #33ff33;
+        }
+
+        .game-over.defeat h2 {
+            color: #ff3333;
+            text-shadow: 0 0 20px #ff3333;
+        }
+
+        .stats-display {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #33ff33;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .typing-effect {
+            overflow: hidden;
+            border-right: 2px solid #33ff33;
+            white-space: nowrap;
+            animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #33ff33 }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            #game-container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .status-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .ascii-art {
+                font-size: 0.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="crt-flicker">
+            <div id="game-screen">
+                <!-- Game content rendered here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // APOCALYPTICON - A Text Adventure Game
+        // In the style of Oregon Trail
+        // ============================================
+
+        const GameState = {
+            TITLE: 'title',
+            INTRO: 'intro',
+            NAME_PARTY: 'name_party',
+            SHOP: 'shop',
+            TRAVELING: 'traveling',
+            EVENT: 'event',
+            CAMP: 'camp',
+            LANDMARK: 'landmark',
+            FINAL_BOSS: 'final_boss',
+            GAME_OVER: 'game_over',
+            VICTORY: 'victory'
+        };
+
+        // Game configuration
+        const CONFIG = {
+            TOTAL_DISTANCE: 1300, // miles from Chicago to Disney World
+            DAILY_TRAVEL: { MIN: 12, MAX: 25 },
+            STARTING_MONEY: 500,
+            FOOD_PER_PERSON_PER_DAY: 3,
+            FUEL_PER_DAY: { SLOW: 5, NORMAL: 10, FAST: 15 },
+            EVENT_CHANCE: 0.4,
+            LANDMARK_INTERVAL: 200
+        };
+
+        // Shop items
+        const SHOP_ITEMS = [
+            { id: 'food', name: 'Food Rations', price: 2, unit: 'lbs', description: 'Essential for survival' },
+            { id: 'fuel', name: 'Fuel Canisters', price: 5, unit: 'gallons', description: 'Powers your vehicle' },
+            { id: 'medkits', name: 'Med Kits', price: 25, unit: 'kits', description: 'Heals injuries and illness' },
+            { id: 'parts', name: 'Spare Parts', price: 30, unit: 'sets', description: 'For vehicle repairs' },
+            { id: 'weapons', name: 'Weapons/Ammo', price: 40, unit: 'units', description: 'Protection from threats' },
+            { id: 'clothes', name: 'Rad Suits', price: 50, unit: 'suits', description: 'Protection from radiation' }
+        ];
+
+        // Landmarks along the journey (Chicago → St. Louis → Memphis → Mobile → Orlando)
+        const LANDMARKS = [
+            { distance: 150, name: 'Joliet, Illinois', description: 'The Amtrak is somehow still running (kind of). Halfway to St. Louis. Wait... is that Bloom, the assistant conductor, watching from the platform? This might get complicated.' },
+            { distance: 300, name: 'St. Louis, Missouri', description: 'The Gateway Arch still stands. End of the line for Amtrak. Time to find a boat and head down the Mississippi. You swear you saw Bloom in the distance. He\'s following you.' },
+            { distance: 600, name: 'Memphis, Tennessee', description: 'Graceland is now a Duster nest. Elvis has definitely left the building. Time to ditch the boat and continue on foot. Bloom is still on your trail.' },
+            { distance: 900, name: 'Birmingham, Alabama', description: 'The long walk continues. Your feet hurt. Everything hurts. But Disney World isn\'t going to walk itself. And Bloom isn\'t going to stop chasing you.' },
+            { distance: 1100, name: 'Mobile, Alabama', description: 'The Gulf Coast! You can smell the ocean. Or possibly just decades of rot. Hard to tell anymore. Bloom can\'t be far behind.' },
+            { distance: 1250, name: 'Pensacola, Florida', description: 'Welcome to Florida, where the humidity makes the apocalypse even more unbearable. Almost there now. But so is Bloom.' },
+            { distance: 1300, name: 'Walt Disney World', description: 'The gates of the Magic Kingdom rise before you. Mickey\'s silhouette still visible on the castle. But there\'s someone standing at the gates. Bloom.' }
+        ];
+
+        // Random events
+        const EVENTS = {
+            GOOD: [
+                {
+                    title: 'Abandoned Costco',
+                    text: 'An intact Costco! The apocalypse finally has a silver lining.',
+                    effects: { food: 40, fuel: 15 },
+                    message: 'Found industrial-sized snacks and fuel! Bulk shopping saves the day again!'
+                },
+                {
+                    title: 'Friendly Oracle',
+                    text: 'A milky-eyed woman in tattered robes approaches. She offers cryptic wisdom and, surprisingly, beef jerky.',
+                    effects: { morale: 15, food: 10 },
+                    message: 'The oracle says: "Your path is clear, your destiny uncertain, your snacks delicious."'
+                },
+                {
+                    title: 'Working Gas Station',
+                    text: 'A gas station with functional pumps! The price is still $4.50/gallon. Some things never change.',
+                    effects: { fuel: 30 },
+                    message: 'Filled up the tank. The apocalypse doesn\'t mean free gas, apparently.'
+                },
+                {
+                    title: 'Abandoned Pharmacy',
+                    text: 'A pharmacy with its supplies mostly intact. The "As Seen On TV" aisle is untouched, naturally.',
+                    effects: { medkits: 2, morale: 5 },
+                    message: 'Scored medical supplies! And a Snuggie!'
+                },
+                {
+                    title: 'Survivalist Stash',
+                    text: 'Someone\'s doomsday bunker. They prepared for everything except what actually happened.',
+                    effects: { food: 25, weapons: 1, clothes: 1 },
+                    message: 'Found freeze-dried food, a crossbow, and a hazmat suit!'
+                }
+            ],
+            BAD: [
+                {
+                    title: 'Dusters Attack!',
+                    text: 'A pack of Dusters emerges! These ravenous former-humans have bones like steel and hunger like… well, like people who haven\'t eaten in three years.',
+                    choices: [
+                        { text: 'Fight them off with weapons', requireWeapons: true, success: { weapons: -1 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Try to outrun them', success: { fuel: -10 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Throw food as distraction', effects: { food: -30, morale: -5 } }
+                    ]
+                },
+                {
+                    title: 'Frog-Blood Monks',
+                    text: 'A robed cult blocks the road. They drink frog blood to trigger spontaneous gender changes. Yes, really. They smell like frogs. It\'s extremely unsettling.',
+                    choices: [
+                        { text: 'Politely decline their invitation to join', effects: { morale: -5 } },
+                        { text: 'Accept some frog blood (risky)', successChance: 0.5, success: { healAll: true }, fail: { radiationDamage: true } },
+                        { text: 'Drive through quickly', effects: { fuel: -15, morale: -10 } }
+                    ]
+                },
+                {
+                    title: 'Deranged Survivalist',
+                    text: 'A man in tactical gear stops you. He\'s been waiting for this moment his whole life. He will NOT stop talking about his bunker.',
+                    choices: [
+                        { text: 'Humor him for 3 hours', effects: { daysLost: 1, morale: -15 } },
+                        { text: 'Try to sneak away mid-rant', successChance: 0.6, fail: { morale: -20 } },
+                        { text: 'Trade supplies for him to leave', effects: { food: -20, fuel: -10 } }
+                    ]
+                },
+                {
+                    title: 'The Mayberry Brigade',
+                    text: 'A town of survivors cosplaying The Andy Griffith Show. They enforce 1960s social norms. With violence.',
+                    choices: [
+                        { text: 'Play along with the madness', effects: { daysLost: 2, morale: -10 } },
+                        { text: 'Refuse to say "gee willikers"', successChance: 0.4, success: {}, fail: { injureRandom: true } },
+                        { text: 'Escape in the night', effects: { fuel: -15 } }
+                    ]
+                },
+                {
+                    title: 'Bloom Appears!',
+                    text: 'The Amtrak assistant conductor appears on the horizon, still pursuing you. Bloom is relentless, unstoppable, and very, very angry.',
+                    choices: [
+                        { text: 'Fight him off', requireWeapons: true, success: { weapons: -1, morale: -10 }, fail: { injureRandom: true, loseSupplies: true } },
+                        { text: 'Run and hide', effects: { daysLost: 1, morale: -15 } },
+                        { text: 'Attempt to lose him', successChance: 0.6, success: { fuel: -15 }, fail: { injureRandom: true, fuel: -15 } }
+                    ]
+                },
+                {
+                    title: 'Bloom\'s Trap',
+                    text: 'You\'ve walked right into a trap set by Bloom. The assistant conductor has been tracking you this whole time.',
+                    choices: [
+                        { text: 'Fight your way out', requireWeapons: true, success: { weapons: -1 }, fail: { injureRandom: true, food: -20 } },
+                        { text: 'Bargain with him', successChance: 0.3, success: { morale: -10 }, fail: { loseSupplies: true } },
+                        { text: 'Create a distraction and flee', effects: { food: -25, fuel: -10 } }
+                    ]
+                },
+                {
+                    title: 'Contaminated Twinkies',
+                    text: 'You discover your food stash is compromised. Even Twinkies have an expiration date, apparently.',
+                    effects: { food: -20, morale: -10 },
+                    message: 'The apocalypse has officially gone too far.'
+                },
+                {
+                    title: 'Flying Monkey Aftermath',
+                    text: 'You pass through an area that took a direct hit from a Flying Monkey bomb. The liquefied remains glisten in the sun. Try not to think about it.',
+                    effects: { morale: -20 },
+                    message: 'The reminder of what the Jamaicans did weighs heavy on everyone.'
+                },
+                {
+                    title: 'Treacherous Interstate',
+                    text: 'I-65 is completely blocked by a 47-car pile-up. It looks like it happened mid-evacuation.',
+                    choices: [
+                        { text: 'Clear a path (takes time)', effects: { daysLost: 1 } },
+                        { text: 'Find alternate route', effects: { fuel: -20 } },
+                        { text: 'Attempt to drive over the cars', successChance: 0.5, success: {}, fail: { parts: -1, injureRandom: true } }
+                    ]
+                }
+            ],
+            NEUTRAL: [
+                {
+                    title: 'Crossroads',
+                    text: 'A sun-bleached billboard advertises "DISNEY WORLD: JUST 500 MILES!" The irony is palpable.',
+                    choices: [
+                        { text: 'Take the interstate (faster but more exposed)', effects: { bonusDistance: 30, eventChanceIncrease: true } },
+                        { text: 'Take the scenic route (slower but safer)', effects: { fuel: -5 } }
+                    ]
+                },
+                {
+                    title: 'Mysterious Trader',
+                    text: 'A trader pulls up in a cart pulled by… are those cats? He refuses to explain.',
+                    choices: [
+                        { text: 'Trade food for fuel (20 food = 15 fuel)', requireFood: 20, effects: { food: -20, fuel: 15 } },
+                        { text: 'Trade fuel for food (15 fuel = 20 food)', requireFuel: 15, effects: { fuel: -15, food: 20 } },
+                        { text: 'Ask about the cats', effects: { morale: -5 } },
+                        { text: 'Decline and move on', effects: {} }
+                    ]
+                },
+                {
+                    title: 'Suburban Wasteland',
+                    text: 'A subdivision frozen in time. Some mailboxes still have mail. Some driveways still have newspapers. It\'s eerie.',
+                    choices: [
+                        { text: 'Search thoroughly (risky)', successChance: 0.6, success: { food: 25, fuel: 10, medkits: 1 }, fail: { injureRandom: true } },
+                        { text: 'Quick scavenge of one house', effects: { food: 10 } },
+                        { text: 'Pass by', effects: {} }
+                    ]
+                },
+                {
+                    title: 'The Oracle Returns',
+                    text: 'The milky-eyed oracle appears again. She speaks in riddles about your journey and offers… lottery tickets?',
+                    choices: [
+                        { text: 'Accept her wisdom', effects: { morale: 10 } },
+                        { text: 'Ask if she\'s following you', effects: { morale: -5 } },
+                        { text: 'Buy a lottery ticket ($5)', effects: { morale: -10 } }
+                    ]
+                }
+            ]
+        };
+
+        // Death messages
+        const DEATH_MESSAGES = [
+            'succumbed to Flying Monkey bomb aftereffects',
+            'didn\'t make it through the Duster attack',
+            'was lost somewhere in Tennessee',
+            'died doing something heroic (probably)',
+            'went to the big Disney World in the sky',
+            'didn\'t survive the night (but put up a good fight)',
+            'fell victim to the frog-blood monks',
+            'couldn\'t handle one more deranged survivalist'
+        ];
+
+        // Main game object
+        let game = {
+            state: GameState.TITLE,
+            day: 1,
+            distance: 0,
+            money: CONFIG.STARTING_MONEY,
+            supplies: {
+                food: 0,
+                fuel: 0,
+                medkits: 0,
+                parts: 0,
+                weapons: 0,
+                clothes: 0
+            },
+            morale: 100,
+            party: [],
+            travelSpeed: 1,
+            log: [],
+            currentEvent: null,
+            nextLandmarkIndex: 0,
+            shopCart: {}
+        };
+
+        // Utility functions
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomChoice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function getStatusClass(value, max = 100) {
+            const percent = (value / max) * 100;
+            if (percent <= 25) return 'critical';
+            if (percent <= 50) return 'warning';
+            return 'good';
+        }
+
+        function getAliveParty() {
+            return game.party.filter(m => m.alive);
+        }
+
+        function addLog(message) {
+            game.log.unshift({ day: game.day, message });
+            if (game.log.length > 20) game.log.pop();
+        }
+
+        // Render functions
+        function render() {
+            const screen = document.getElementById('game-screen');
+            screen.innerHTML = '';
+            screen.className = 'fade-in';
+
+            switch (game.state) {
+                case GameState.TITLE:
+                    renderTitle(screen);
+                    break;
+                case GameState.INTRO:
+                    renderIntro(screen);
+                    break;
+                case GameState.NAME_PARTY:
+                    renderNameParty(screen);
+                    break;
+                case GameState.SHOP:
+                    renderShop(screen);
+                    break;
+                case GameState.TRAVELING:
+                    renderTravel(screen);
+                    break;
+                case GameState.EVENT:
+                    renderEvent(screen);
+                    break;
+                case GameState.CAMP:
+                    renderCamp(screen);
+                    break;
+                case GameState.LANDMARK:
+                    renderLandmark(screen);
+                    break;
+                case GameState.FINAL_BOSS:
+                    renderFinalBoss(screen);
+                    break;
+                case GameState.GAME_OVER:
+                    renderGameOver(screen, false);
+                    break;
+                case GameState.VICTORY:
+                    renderGameOver(screen, true);
+                    break;
+            }
+        }
+
+        function renderTitle(screen) {
+            screen.innerHTML = `
+                <div class="ascii-art">
+    ___    ____  ____  _________    __  __  ______  ______________  _   __
+   /   |  / __ \\/ __ \\/ ____/   |  / / /\\ \\/ / __ \\/_  __/  _/ ___// | / /
+  / /| | / /_/ / / / / /   / /| | / /  \\  / /_/ / / /  / / \\__ \\/  |/ /
+ / ___ |/ ____/ /_/ / /___/ ___ |/ /___/ / ____/ / / _/ / ___/ / /|  /
+/_/  |_/_/    \\____/\\____/_/  |_/_____/_/_/     /_/ /___//____/_/ |_/
+
+                </div>
+                <h1>APOCALYPTICON</h1>
+                <h2>A Text Adventure</h2>
+                <p class="subtitle">In the style of Oregon Trail (but weirder)</p>
+
+                <div class="narrative">
+                    <p>Three years ago, the Jamaicans launched the Flying Monkey bombs.</p>
+                    <p>Most of the world's population was instantly liquefied. The survivors? Well, things got complicated.</p>
+                    <p>You've been holed up in Chicago, watching civilization crumble. Your family is gone. Your friends are gone. Society is definitely gone.</p>
+                    <p>It's time to do something completely irrational.</p>
+                    <p>You're going to <strong>Disney World</strong>.</p>
+                    <p>The plan: Amtrak to St. Louis, boat down the Mississippi to Memphis, then walk to Mobile and on to Orlando.</p>
+                    <p>1,300 miles through Duster territory, past deranged survivalists, frog-blood monks, and worse.</p>
+                    <p>Oh, and there's an Amtrak assistant conductor named Bloom who will probably try to stop you.</p>
+                    <p><strong>This is definitely a terrible idea.</strong></p>
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="startGame()">[ BEGIN YOUR JOURNEY ]</button>
+                    <button class="choice-btn" onclick="showInstructions()">[ HOW TO PLAY ]</button>
+                </div>
+            `;
+        }
+
+        function showInstructions() {
+            const screen = document.getElementById('game-screen');
+            screen.innerHTML = `
+                <h2>HOW TO PLAY</h2>
+
+                <div class="narrative">
+                    <p><strong>OBJECTIVE:</strong> Travel 1,300 miles from Chicago to Disney World before supplies run out, everyone dies, or you realize this was a terrible idea.</p>
+
+                    <p><strong>RESOURCES:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>Food</strong> - Each person needs 3 lbs per day (expired Twinkies count)</li>
+                        <li><strong>Fuel</strong> - Powers your vehicle (5-15 gallons/day based on speed)</li>
+                        <li><strong>Morale</strong> - Keeps your party going. Low morale = bad decisions</li>
+                        <li><strong>Med Kits</strong> - Heal injuries from Dusters, monks, or poor life choices</li>
+                        <li><strong>Spare Parts</strong> - Fix vehicle breakdowns (duct tape not included)</li>
+                        <li><strong>Weapons</strong> - Defend against Dusters and aggressive salesmen</li>
+                        <li><strong>Rad Suits</strong> - Protect from Flying Monkey bomb aftereffects</li>
+                    </ul>
+
+                    <p><strong>TRAVEL:</strong> Each day you'll travel 12-25 miles depending on conditions. Choose your pace - faster uses more fuel but covers more ground.</p>
+
+                    <p><strong>EVENTS:</strong> Random encounters will challenge you. Dusters, oracles, frog-blood monks, and worse await.</p>
+
+                    <p><strong>PARTY:</strong> Keep everyone alive. Dead party members can't ride Space Mountain.</p>
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="render()">[ BACK ]</button>
+                </div>
+            `;
+        }
+
+        function startGame() {
+            // Reset game state
+            game = {
+                state: GameState.INTRO,
+                day: 1,
+                distance: 0,
+                money: CONFIG.STARTING_MONEY,
+                supplies: { food: 0, fuel: 0, medkits: 0, parts: 0, weapons: 0, clothes: 0 },
+                morale: 100,
+                party: [],
+                travelSpeed: 1,
+                log: [],
+                currentEvent: null,
+                nextLandmarkIndex: 0,
+                shopCart: {}
+            };
+            render();
+        }
+
+        function renderIntro(screen) {
+            screen.innerHTML = `
+                <div class="ascii-art">
+        🏰
+       /|\\
+      / | \\
+     /  |  \\
+    |  🐭  |
+     \\     /
+      \\___/
+                </div>
+
+                <h2>THE JOURNEY BEGINS</h2>
+
+                <div class="narrative">
+                    <p>Before you leave Chicago, you need to gather your party and whatever supplies you can scrounge.</p>
+                    <p>You have <strong>$${game.money}</strong> worth of salvage to trade.</p>
+                    <p>The journey ahead: Train to St. Louis. Boat to Memphis. Then walk the rest of the way.</p>
+                    <p>Choose your companions wisely. Disney World is 1,300 miles away, and Dusters don't take vacation days.</p>
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="goToNameParty()">[ NAME YOUR PARTY ]</button>
+                </div>
+            `;
+        }
+
+        function goToNameParty() {
+            game.state = GameState.NAME_PARTY;
+            render();
+        }
+
+        function renderNameParty(screen) {
+            screen.innerHTML = `
+                <h2>NAME YOUR PARTY</h2>
+                <p class="subtitle">Who's crazy enough to join you? (up to 5 people)</p>
+
+                <div class="input-group">
+                    <label>Party Leader (You):</label>
+                    <input type="text" id="member1" placeholder="Enter name..." maxlength="20" value="Patrick">
+                </div>
+                <div class="input-group">
+                    <label>Your Best Friend:</label>
+                    <input type="text" id="member2" placeholder="Enter name..." maxlength="20" value="Ben">
+                </div>
+                <div class="input-group">
+                    <label>Party Member 3:</label>
+                    <input type="text" id="member3" placeholder="Enter name..." maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label>Party Member 4:</label>
+                    <input type="text" id="member4" placeholder="Enter name..." maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label>Party Member 5:</label>
+                    <input type="text" id="member5" placeholder="Enter name..." maxlength="20">
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="confirmParty()">[ CONFIRM PARTY ]</button>
+                </div>
+            `;
+        }
+
+        function confirmParty() {
+            game.party = [];
+            for (let i = 1; i <= 5; i++) {
+                const input = document.getElementById(`member${i}`);
+                const name = input.value.trim();
+                if (name) {
+                    game.party.push({
+                        name: name,
+                        alive: true,
+                        health: 100,
+                        sick: false,
+                        injured: false,
+                        isLeader: i === 1
+                    });
+                }
+            }
+
+            if (game.party.length === 0) {
+                alert('You need at least one party member!');
+                return;
+            }
+
+            game.state = GameState.SHOP;
+            // Initialize shop cart
+            SHOP_ITEMS.forEach(item => {
+                game.shopCart[item.id] = 0;
+            });
+            render();
+        }
+
+        function renderShop(screen) {
+            const cartTotal = SHOP_ITEMS.reduce((sum, item) => {
+                return sum + (game.shopCart[item.id] * item.price);
+            }, 0);
+            const remaining = game.money - cartTotal;
+
+            let shopHTML = `
+                <h2>CHICAGO TRADING POST</h2>
+                <p class="subtitle">Last chance to stock up before leaving civilization (what's left of it)</p>
+
+                <div class="money-display">
+                    Salvage Remaining: $${remaining}
+                </div>
+            `;
+
+            SHOP_ITEMS.forEach(item => {
+                const qty = game.shopCart[item.id];
+                const canBuy = remaining >= item.price;
+                const canSell = qty > 0;
+
+                shopHTML += `
+                    <div class="shop-item">
+                        <div>
+                            <strong>${item.name}</strong><br>
+                            <small>${item.description}</small><br>
+                            <small>$${item.price} per ${item.unit}</small>
+                        </div>
+                        <div class="shop-controls">
+                            <button class="shop-btn" onclick="shopRemove('${item.id}')" ${!canSell ? 'disabled' : ''}>-</button>
+                            <span style="min-width: 40px; text-align: center;">${qty}</span>
+                            <button class="shop-btn" onclick="shopAdd('${item.id}')" ${!canBuy ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            shopHTML += `
+                <div class="choices" style="margin-top: 30px;">
+                    <button class="choice-btn" onclick="finishShopping()">[ HIT THE ROAD ]</button>
+                </div>
+
+                <div class="narrative" style="margin-top: 20px;">
+                    <p><strong>Recommended minimums for 1,300 miles:</strong></p>
+                    <p>Food: ${game.party.length * 3 * 30} lbs (30 days for ${game.party.length} people)</p>
+                    <p>Fuel: 250 gallons (assuming no Duster attacks)</p>
+                    <p><em>Weapons and rad suits strongly recommended. This is not a drill.</em></p>
+                </div>
+            `;
+
+            screen.innerHTML = shopHTML;
+        }
+
+        function shopAdd(itemId) {
+            const item = SHOP_ITEMS.find(i => i.id === itemId);
+            const cartTotal = SHOP_ITEMS.reduce((sum, i) => sum + (game.shopCart[i.id] * i.price), 0);
+            if (game.money - cartTotal >= item.price) {
+                game.shopCart[itemId] += (itemId === 'food' ? 10 : itemId === 'fuel' ? 10 : 1);
+                render();
+            }
+        }
+
+        function shopRemove(itemId) {
+            if (game.shopCart[itemId] > 0) {
+                game.shopCart[itemId] -= (itemId === 'food' ? 10 : itemId === 'fuel' ? 10 : 1);
+                if (game.shopCart[itemId] < 0) game.shopCart[itemId] = 0;
+                render();
+            }
+        }
+
+        function finishShopping() {
+            // Apply purchases
+            SHOP_ITEMS.forEach(item => {
+                game.supplies[item.id] = game.shopCart[item.id];
+                game.money -= game.shopCart[item.id] * item.price;
+            });
+
+            addLog('Left Chicago. Disney World or bust!');
+            game.state = GameState.TRAVELING;
+            render();
+        }
+
+        function renderStatusBar() {
+            const aliveCount = getAliveParty().length;
+            const foodDays = aliveCount > 0 ? Math.floor(game.supplies.food / (aliveCount * CONFIG.FOOD_PER_PERSON_PER_DAY)) : 0;
+            const fuelDays = Math.floor(game.supplies.fuel / CONFIG.FUEL_PER_DAY.NORMAL);
+
+            return `
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-label">FOOD</div>
+                        <div class="status-value ${getStatusClass(foodDays, 30)}">${game.supplies.food} lbs</div>
+                        <div class="status-label">(${foodDays} days)</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">FUEL</div>
+                        <div class="status-value ${getStatusClass(fuelDays, 30)}">${game.supplies.fuel} gal</div>
+                        <div class="status-label">(${fuelDays} days)</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">MORALE</div>
+                        <div class="status-value ${getStatusClass(game.morale)}">${game.morale}%</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">PARTY</div>
+                        <div class="status-value ${getStatusClass(aliveCount, game.party.length)}">${aliveCount}/${game.party.length}</div>
+                    </div>
+                </div>
+
+                <div class="day-counter">Day ${game.day}</div>
+
+                <div class="location-display">
+                    <strong>Distance Traveled:</strong> ${game.distance} / ${CONFIG.TOTAL_DISTANCE} miles
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(game.distance / CONFIG.TOTAL_DISTANCE) * 100}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTravel(screen) {
+            const nextLandmark = LANDMARKS[game.nextLandmarkIndex];
+            const distanceToLandmark = nextLandmark ? nextLandmark.distance - game.distance : CONFIG.TOTAL_DISTANCE - game.distance;
+
+            // Determine mode of transportation based on distance
+            let travelNarrative = '';
+            if (game.distance < 300) {
+                travelNarrative = 'The Amtrak chugs along the tracks. Surprisingly, the train still works. Sort of.';
+            } else if (game.distance < 600) {
+                travelNarrative = 'The Mississippi River flows south. Your makeshift boat drifts along. Try not to think about what\'s in the water.';
+            } else {
+                travelNarrative = 'One foot in front of the other. The road stretches ahead. Your feet hurt, but you keep walking.';
+            }
+
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <div class="narrative">
+                    <p>${travelNarrative}</p>
+                    ${nextLandmark ? `<p>Next landmark: <strong>${nextLandmark.name}</strong> (${distanceToLandmark} miles)</p>` : '<p>Disney World is close. You can almost smell the churros.</p>'}
+                </div>
+
+                <h3>What would you like to do?</h3>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="travel('slow')">
+                        [ TRAVEL - Careful Pace ]
+                        <br><small>Slower but uses less fuel (5 gal/day)</small>
+                    </button>
+                    <button class="choice-btn" onclick="travel('normal')">
+                        [ TRAVEL - Normal Pace ]
+                        <br><small>Balanced speed and fuel (10 gal/day)</small>
+                    </button>
+                    <button class="choice-btn" onclick="travel('fast')">
+                        [ TRAVEL - Push Hard ]
+                        <br><small>Faster but uses more fuel (15 gal/day)</small>
+                    </button>
+                    <button class="choice-btn" onclick="makeCamp()">
+                        [ MAKE CAMP ]
+                        <br><small>Rest, check supplies, heal</small>
+                    </button>
+                </div>
+            `;
+        }
+
+        function travel(pace) {
+            const paceMultipliers = { slow: 0.6, normal: 1, fast: 1.4 };
+            const fuelUsage = CONFIG.FUEL_PER_DAY[pace.toUpperCase()];
+            const baseDistance = randomInt(CONFIG.DAILY_TRAVEL.MIN, CONFIG.DAILY_TRAVEL.MAX);
+            const actualDistance = Math.floor(baseDistance * paceMultipliers[pace] * game.travelSpeed);
+
+            // Check fuel
+            if (game.supplies.fuel < fuelUsage) {
+                game.currentEvent = {
+                    title: 'Out of Fuel!',
+                    text: 'Your vehicle sputters to a stop. You\'re stranded without fuel.',
+                    isSpecial: true,
+                    choices: [
+                        { text: 'Search for fuel nearby', successChance: 0.3, success: { fuel: 15 }, fail: { daysLost: 2, morale: -20 } },
+                        { text: 'Wait for help', effects: { daysLost: 3, eventChance: true } },
+                        { text: 'Abandon vehicle and walk', effects: { fuel: 0, travelSpeed: 0.3, morale: -30 } }
+                    ]
+                };
+                game.state = GameState.EVENT;
+                render();
+                return;
+            }
+
+            // Consume resources
+            game.supplies.fuel -= fuelUsage;
+            const aliveCount = getAliveParty().length;
+            const foodNeeded = aliveCount * CONFIG.FOOD_PER_PERSON_PER_DAY;
+
+            if (game.supplies.food >= foodNeeded) {
+                game.supplies.food -= foodNeeded;
+            } else {
+                // Starvation
+                game.supplies.food = 0;
+                game.morale -= 15;
+                addLog('The party is starving!');
+
+                // Chance of death from starvation
+                if (Math.random() < 0.1) {
+                    const victim = randomChoice(getAliveParty());
+                    if (victim && !victim.isLeader) {
+                        victim.alive = false;
+                        addLog(`${victim.name} died of starvation.`);
+                    }
+                }
+            }
+
+            // Travel
+            game.distance += actualDistance;
+            game.day++;
+
+            // Morale changes
+            if (pace === 'fast') {
+                game.morale -= 5;
+            } else if (pace === 'slow') {
+                game.morale += 2;
+            }
+
+            // Health recovery for non-sick/injured members
+            game.party.forEach(m => {
+                if (m.alive && !m.sick && !m.injured && m.health < 100) {
+                    m.health = Math.min(100, m.health + 5);
+                }
+            });
+
+            addLog(`Traveled ${actualDistance} miles.`);
+
+            // Check for final boss / victory
+            if (game.distance >= CONFIG.TOTAL_DISTANCE) {
+                game.state = GameState.FINAL_BOSS;
+                render();
+                return;
+            }
+
+            // Check for landmark
+            const nextLandmark = LANDMARKS[game.nextLandmarkIndex];
+            if (nextLandmark && game.distance >= nextLandmark.distance) {
+                game.currentEvent = nextLandmark;
+                game.nextLandmarkIndex++;
+                game.state = GameState.LANDMARK;
+                render();
+                return;
+            }
+
+            // Random event check
+            if (Math.random() < CONFIG.EVENT_CHANCE) {
+                triggerRandomEvent();
+                return;
+            }
+
+            // Check for game over conditions
+            if (checkGameOver()) {
+                return;
+            }
+
+            render();
+        }
+
+        function triggerRandomEvent() {
+            const eventPool = Math.random() < 0.6 ? EVENTS.BAD : (Math.random() < 0.5 ? EVENTS.GOOD : EVENTS.NEUTRAL);
+            game.currentEvent = JSON.parse(JSON.stringify(randomChoice(eventPool)));
+            game.state = GameState.EVENT;
+            render();
+        }
+
+        function renderEvent(screen) {
+            const event = game.currentEvent;
+            const isBad = EVENTS.BAD.some(e => e.title === event.title) || event.isSpecial;
+
+            let html = `
+                ${renderStatusBar()}
+
+                <div class="event-text ${isBad ? 'danger-text' : ''}">
+                    <h3>${event.title}</h3>
+                    <p>${event.text}</p>
+                </div>
+            `;
+
+            if (event.choices) {
+                html += '<div class="choices">';
+                event.choices.forEach((choice, index) => {
+                    let disabled = false;
+                    let note = '';
+
+                    if (choice.requireWeapons && game.supplies.weapons < 1) {
+                        disabled = true;
+                        note = ' (No weapons!)';
+                    }
+                    if (choice.requireMedkits && game.supplies.medkits < 1) {
+                        disabled = true;
+                        note = ' (No med kits!)';
+                    }
+                    if (choice.requireParts && game.supplies.parts < 1) {
+                        disabled = true;
+                        note = ' (No spare parts!)';
+                    }
+                    if (choice.requireClothes && game.supplies.clothes < 1) {
+                        disabled = true;
+                        note = ' (No rad suits!)';
+                    }
+                    if (choice.requireFood && game.supplies.food < choice.requireFood) {
+                        disabled = true;
+                        note = ` (Need ${choice.requireFood} food!)`;
+                    }
+                    if (choice.requireFuel && game.supplies.fuel < choice.requireFuel) {
+                        disabled = true;
+                        note = ` (Need ${choice.requireFuel} fuel!)`;
+                    }
+
+                    html += `<button class="choice-btn" onclick="handleEventChoice(${index})" ${disabled ? 'disabled' : ''}>
+                        [ ${choice.text}${note} ]
+                    </button>`;
+                });
+                html += '</div>';
+            } else {
+                // Auto-resolve event with just effects
+                html += `
+                    <div class="event-text success-text">
+                        <p>${event.message}</p>
+                    </div>
+                    <div class="choices">
+                        <button class="choice-btn" onclick="resolveSimpleEvent()">[ Continue ]</button>
+                    </div>
+                `;
+            }
+
+            screen.innerHTML = html;
+        }
+
+        function resolveSimpleEvent() {
+            const event = game.currentEvent;
+            if (event.effects) {
+                applyEffects(event.effects);
+            }
+            game.currentEvent = null;
+            game.state = GameState.TRAVELING;
+
+            if (checkGameOver()) return;
+            render();
+        }
+
+        function handleEventChoice(choiceIndex) {
+            const event = game.currentEvent;
+            const choice = event.choices[choiceIndex];
+            let success = true;
+            let message = '';
+
+            // Check for success chance
+            if (choice.successChance !== undefined) {
+                success = Math.random() < choice.successChance;
+            }
+
+            // Apply effects based on success/failure
+            if (success) {
+                if (choice.success) {
+                    applyEffects(choice.success);
+                    message = 'Your choice paid off!';
+                }
+                if (choice.effects) {
+                    applyEffects(choice.effects);
+                }
+            } else {
+                if (choice.fail) {
+                    applyEffects(choice.fail);
+                    message = 'Things didn\'t go as planned...';
+                }
+            }
+
+            addLog(`${event.title}: ${choice.text} - ${success ? 'Success' : 'Failed'}`);
+
+            game.currentEvent = null;
+            game.state = GameState.TRAVELING;
+
+            if (checkGameOver()) return;
+            render();
+        }
+
+        function applyEffects(effects) {
+            if (effects.food) game.supplies.food = Math.max(0, game.supplies.food + effects.food);
+            if (effects.fuel) game.supplies.fuel = Math.max(0, game.supplies.fuel + effects.fuel);
+            if (effects.medkits) game.supplies.medkits = Math.max(0, game.supplies.medkits + effects.medkits);
+            if (effects.parts) game.supplies.parts = Math.max(0, game.supplies.parts + effects.parts);
+            if (effects.weapons) game.supplies.weapons = Math.max(0, game.supplies.weapons + effects.weapons);
+            if (effects.clothes) game.supplies.clothes = Math.max(0, game.supplies.clothes + effects.clothes);
+            if (effects.morale) game.morale = Math.max(0, Math.min(100, game.morale + effects.morale));
+            if (effects.bonusDistance) game.distance += effects.bonusDistance;
+            if (effects.daysLost) game.day += effects.daysLost;
+            if (effects.travelSpeed) game.travelSpeed = effects.travelSpeed;
+
+            if (effects.healAll) {
+                game.party.forEach(m => {
+                    if (m.alive) {
+                        m.health = 100;
+                        m.sick = false;
+                        m.injured = false;
+                    }
+                });
+            }
+
+            if (effects.injureRandom) {
+                const target = randomChoice(getAliveParty());
+                if (target) {
+                    target.injured = true;
+                    target.health = Math.max(20, target.health - 30);
+                    addLog(`${target.name} was injured!`);
+                }
+            }
+
+            if (effects.radiationDamage) {
+                game.party.forEach(m => {
+                    if (m.alive) {
+                        m.sick = true;
+                        m.health = Math.max(10, m.health - 25);
+                    }
+                });
+                addLog('The party suffers from radiation exposure!');
+            }
+
+            if (effects.deathChance) {
+                const nonLeaders = getAliveParty().filter(m => !m.isLeader);
+                if (nonLeaders.length > 0 && Math.random() < effects.deathChance) {
+                    const victim = randomChoice(nonLeaders);
+                    victim.alive = false;
+                    addLog(`${victim.name} ${randomChoice(DEATH_MESSAGES)}.`);
+                }
+            }
+
+            if (effects.loseSupplies) {
+                game.supplies.food = Math.floor(game.supplies.food * 0.7);
+                game.supplies.fuel = Math.floor(game.supplies.fuel * 0.8);
+                addLog('Lost some supplies!');
+            }
+        }
+
+        function renderLandmark(screen) {
+            const landmark = game.currentEvent;
+
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <div class="event-text success-text">
+                    <h3>LANDMARK: ${landmark.name}</h3>
+                    <p>${landmark.description}</p>
+                </div>
+
+                <div class="narrative">
+                    <p>You've reached a significant point in your journey.</p>
+                    <p>Distance to Disney World: ${CONFIG.TOTAL_DISTANCE - game.distance} miles</p>
+                    ${game.distance > 1000 ? '<p><em>You can do this. The Magic Kingdom awaits.</em></p>' : ''}
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="leaveLandmark()">[ Continue Journey ]</button>
+                    <button class="choice-btn" onclick="makeCamp()">[ Make Camp Here ]</button>
+                </div>
+            `;
+        }
+
+        function leaveLandmark() {
+            game.currentEvent = null;
+            game.morale = Math.min(100, game.morale + 10);
+            addLog(`Passed ${LANDMARKS[game.nextLandmarkIndex - 1].name}.`);
+            game.state = GameState.TRAVELING;
+            render();
+        }
+
+        function makeCamp() {
+            game.state = GameState.CAMP;
+            render();
+        }
+
+        function renderCamp(screen) {
+            let partyHTML = '';
+            game.party.forEach(member => {
+                const statusClass = member.alive ? (member.sick || member.injured ? 'sick' : '') : 'dead';
+                const status = !member.alive ? 'DECEASED' :
+                              (member.sick ? 'SICK' : '') + (member.injured ? ' INJURED' : '') || 'Healthy';
+
+                partyHTML += `
+                    <div class="party-member ${statusClass}">
+                        <span class="member-name">${member.name}${member.isLeader ? ' (Leader)' : ''}</span>
+                        <span class="member-status">HP: ${member.health}% - ${status}</span>
+                    </div>
+                `;
+            });
+
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <h3>CAMP</h3>
+
+                <div class="party-list">
+                    <h4>Party Status:</h4>
+                    ${partyHTML}
+                </div>
+
+                <div class="stats-display">
+                    <h4>Supplies:</h4>
+                    <div class="stat-row"><span>Food:</span><span>${game.supplies.food} lbs</span></div>
+                    <div class="stat-row"><span>Fuel:</span><span>${game.supplies.fuel} gallons</span></div>
+                    <div class="stat-row"><span>Med Kits:</span><span>${game.supplies.medkits}</span></div>
+                    <div class="stat-row"><span>Spare Parts:</span><span>${game.supplies.parts}</span></div>
+                    <div class="stat-row"><span>Weapons:</span><span>${game.supplies.weapons}</span></div>
+                    <div class="stat-row"><span>Rad Suits:</span><span>${game.supplies.clothes}</span></div>
+                </div>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="restAtCamp()">
+                        [ REST ]
+                        <br><small>Spend a day resting (heals party, uses food)</small>
+                    </button>
+                    <button class="choice-btn" onclick="useMedkit()" ${game.supplies.medkits < 1 || !getAliveParty().some(m => m.sick || m.injured) ? 'disabled' : ''}>
+                        [ USE MED KIT ]
+                        <br><small>Heal a sick/injured party member</small>
+                    </button>
+                    <button class="choice-btn" onclick="scavenge()">
+                        [ SCAVENGE ]
+                        <br><small>Search the area for supplies (risky)</small>
+                    </button>
+                    <button class="choice-btn" onclick="breakCamp()">
+                        [ BREAK CAMP ]
+                        <br><small>Continue your journey</small>
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px; max-height: 150px; overflow-y: auto;">
+                    <h4>Journey Log:</h4>
+                    ${game.log.map(entry => `<div class="log-entry">Day ${entry.day}: ${entry.message}</div>`).join('')}
+                </div>
+            `;
+        }
+
+        function restAtCamp() {
+            const aliveCount = getAliveParty().length;
+            const foodNeeded = aliveCount * CONFIG.FOOD_PER_PERSON_PER_DAY;
+
+            if (game.supplies.food < foodNeeded) {
+                addLog('Not enough food to rest!');
+            } else {
+                game.supplies.food -= foodNeeded;
+                game.day++;
+                game.morale = Math.min(100, game.morale + 10);
+
+                game.party.forEach(m => {
+                    if (m.alive) {
+                        m.health = Math.min(100, m.health + 15);
+                        if (m.sick && Math.random() < 0.3) {
+                            m.sick = false;
+                            addLog(`${m.name} recovered from illness!`);
+                        }
+                        if (m.injured && Math.random() < 0.2) {
+                            m.injured = false;
+                            addLog(`${m.name}'s injuries have healed!`);
+                        }
+                    }
+                });
+
+                addLog('Rested for a day.');
+            }
+
+            if (checkGameOver()) return;
+            render();
+        }
+
+        function useMedkit() {
+            const sickOrInjured = getAliveParty().filter(m => m.sick || m.injured);
+            if (sickOrInjured.length > 0 && game.supplies.medkits > 0) {
+                const patient = sickOrInjured[0];
+                patient.sick = false;
+                patient.injured = false;
+                patient.health = Math.min(100, patient.health + 40);
+                game.supplies.medkits--;
+                addLog(`Used med kit on ${patient.name}.`);
+            }
+            render();
+        }
+
+        function scavenge() {
+            game.day++;
+            const aliveCount = getAliveParty().length;
+            game.supplies.food -= Math.min(game.supplies.food, aliveCount * CONFIG.FOOD_PER_PERSON_PER_DAY);
+
+            if (Math.random() < 0.6) {
+                // Success
+                const foodFound = randomInt(5, 25);
+                const fuelFound = randomInt(0, 10);
+                game.supplies.food += foodFound;
+                game.supplies.fuel += fuelFound;
+                addLog(`Scavenging successful! Found ${foodFound} food and ${fuelFound} fuel.`);
+
+                if (Math.random() < 0.2) {
+                    const bonusItems = ['medkits', 'parts', 'weapons', 'clothes'];
+                    const bonus = randomChoice(bonusItems);
+                    game.supplies[bonus]++;
+                    addLog(`Also found a ${bonus === 'medkits' ? 'med kit' : bonus === 'clothes' ? 'rad suit' : bonus}!`);
+                }
+            } else {
+                // Failure - something bad happens
+                if (Math.random() < 0.5) {
+                    const victim = randomChoice(getAliveParty());
+                    if (victim) {
+                        victim.injured = true;
+                        victim.health -= 20;
+                        addLog(`${victim.name} was injured while scavenging!`);
+                    }
+                } else {
+                    game.morale -= 15;
+                    addLog('Scavenging yielded nothing but despair.');
+                }
+            }
+
+            if (checkGameOver()) return;
+            render();
+        }
+
+        function breakCamp() {
+            game.state = GameState.TRAVELING;
+            render();
+        }
+
+        function checkGameOver() {
+            // Check if leader is dead
+            const leader = game.party.find(m => m.isLeader);
+            if (leader && !leader.alive) {
+                game.state = GameState.GAME_OVER;
+                game.gameOverReason = 'The party leader has died. Without leadership, the group falls apart.';
+                render();
+                return true;
+            }
+
+            // Check if everyone is dead
+            if (getAliveParty().length === 0) {
+                game.state = GameState.GAME_OVER;
+                game.gameOverReason = 'Your entire party has perished in the wasteland.';
+                render();
+                return true;
+            }
+
+            // Check morale
+            if (game.morale <= 0) {
+                game.state = GameState.GAME_OVER;
+                game.gameOverReason = 'Morale has collapsed. The party has given up hope and scattered.';
+                render();
+                return true;
+            }
+
+            return false;
+        }
+
+        function renderFinalBoss(screen) {
+            screen.innerHTML = `
+                ${renderStatusBar()}
+
+                <div class="ascii-art">
+    ⚡️ ⚡️ ⚡️ ⚡️ ⚡️
+       BLOOM
+    ⚡️ ⚡️ ⚡️ ⚡️ ⚡️
+                </div>
+
+                <h2>FINAL CONFRONTATION</h2>
+
+                <div class="event-text danger-text">
+                    <h3>BLOOM AWAITS</h3>
+                    <p>You've made it to Disney World. The gates are right there. Victory is within reach.</p>
+                    <p>But standing between you and the Magic Kingdom is Bloom, the Amtrak assistant conductor.</p>
+                    <p>He's been chasing you since Joliet. Through St. Louis, down the Mississippi, across Tennessee and Alabama, all the way to Florida.</p>
+                    <p>And now, he's here. At the gates of Disney World. Waiting.</p>
+                    <p>"You didn't think I'd let you just walk into the Magic Kingdom, did you?" he says.</p>
+                </div>
+
+                <div class="narrative">
+                    <p><strong>This is it. The final battle.</strong></p>
+                    <p>You've come 1,300 miles for this. You've survived Dusters, frog-blood monks, deranged survivalists, and the Mayberry Brigade.</p>
+                    <p>One last obstacle stands in your way.</p>
+                </div>
+
+                <h3>How do you face Bloom?</h3>
+
+                <div class="choices">
+                    <button class="choice-btn" onclick="fightBloom('weapons')">
+                        [ USE WEAPONS ]
+                        <br><small>${game.supplies.weapons > 0 ? 'You have weapons. Time to use them.' : '⚠️ You have no weapons!'}</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('outsmart')">
+                        [ OUTSMART HIM ]
+                        <br><small>Use your wits instead of violence</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('sacrifice')">
+                        [ SACRIFICE SUPPLIES ]
+                        <br><small>Give him everything you have left</small>
+                    </button>
+                    <button class="choice-btn" onclick="fightBloom('talk')">
+                        [ REASON WITH HIM ]
+                        <br><small>Try to talk him down after 1,300 miles of pursuit</small>
+                    </button>
+                </div>
+            `;
+        }
+
+        function fightBloom(method) {
+            let victory = false;
+            let message = '';
+
+            if (method === 'weapons') {
+                if (game.supplies.weapons > 0) {
+                    victory = true;
+                    message = 'You fight Bloom with everything you have. It\'s brutal. It\'s desperate. But somehow, you win. Bloom falls. The gates are open.';
+                } else {
+                    victory = false;
+                    message = 'Without weapons, you don\'t stand a chance. Bloom overpowers you. Your journey ends here, 1,300 miles from home, at the gates of Disney World.';
+                }
+            } else if (method === 'outsmart') {
+                const success = Math.random() < 0.7; // 70% chance
+                if (success) {
+                    victory = true;
+                    message = 'You trick Bloom into chasing a decoy while you slip past. By the time he realizes his mistake, you\'re already inside the Magic Kingdom.';
+                } else {
+                    victory = false;
+                    message = 'Bloom sees through your plan. He\'s been chasing you for 1,300 miles. He knows all your tricks. Your journey ends here.';
+                }
+            } else if (method === 'sacrifice') {
+                victory = true;
+                game.supplies.food = 0;
+                game.supplies.fuel = 0;
+                message = 'You give Bloom everything. All your food, fuel, and supplies. He takes it all and steps aside. "Fine," he says. "Go to your precious Disney World." You won... but at what cost?';
+            } else if (method === 'talk') {
+                const success = Math.random() < 0.4; // 40% chance
+                if (success) {
+                    victory = true;
+                    message = 'You talk about loss, about hope, about why you came all this way. Something in Bloom\'s eyes changes. He steps aside. "Go," he says quietly. "Just... go."';
+                } else {
+                    victory = false;
+                    message = 'Bloom isn\'t interested in talking. He\'s been chasing you for 1,300 miles. Words won\'t stop him now. Your journey ends here.';
+                }
+            }
+
+            if (victory) {
+                const screen = document.getElementById('game-screen');
+                screen.innerHTML = `
+                    <div class="event-text success-text">
+                        <h3>BLOOM DEFEATED</h3>
+                        <p>${message}</p>
+                    </div>
+
+                    <div class="narrative">
+                        <p>The gates of Disney World open before you.</p>
+                        <p>You made it.</p>
+                    </div>
+
+                    <div class="choices">
+                        <button class="choice-btn" onclick="finalVictory()">[ ENTER THE MAGIC KINGDOM ]</button>
+                    </div>
+                `;
+            } else {
+                game.state = GameState.GAME_OVER;
+                render();
+            }
+        }
+
+        function finalVictory() {
+            game.state = GameState.VICTORY;
+            render();
+        }
+
+        function renderGameOver(screen, victory) {
+            const survivors = getAliveParty();
+            const daysTravel = game.day;
+
+            if (victory) {
+                screen.innerHTML = `
+                    <div class="game-over victory">
+                        <div class="ascii-art">
+    __     _____ ____ _____ ___  ______   __
+    \\ \\   / /_ _/ ___|_   _/ _ \\|  _ \\ \\ / /
+     \\ \\ / / | | |     | || | | | |_) \\ V /
+      \\ V /  | | |___  | || |_| |  _ < | |
+       \\_/  |___\\____| |_| \\___/|_| \\_\\|_|
+                        </div>
+
+                        <h2>YOU MADE IT TO DISNEY WORLD!</h2>
+
+                        <div class="narrative">
+                            <p>After ${daysTravel} days and ${game.distance} miles of absolute insanity,
+                            you finally see the gates of Walt Disney World rise before you.</p>
+                            <p>You survived Dusters, frog-blood monks, deranged survivalists, and the Mayberry Brigade.</p>
+                            <p>You defeated Bloom, the relentless Amtrak assistant conductor who chased you all the way from Joliet.</p>
+                            <p>Cinderella's Castle still stands. Space Mountain is still there. The Haunted Mansion never looked so inviting.</p>
+                            <p>You made it. You actually made it to the Magic Kingdom.</p>
+                            <p><strong>Was it worth it? Probably not. But you did it anyway.</strong></p>
+                        </div>
+
+                        <div class="stats-display">
+                            <h4>Final Statistics:</h4>
+                            <div class="stat-row"><span>Days Traveled:</span><span>${daysTravel}</span></div>
+                            <div class="stat-row"><span>Distance:</span><span>${game.distance} miles</span></div>
+                            <div class="stat-row"><span>Survivors:</span><span>${survivors.length}/${game.party.length}</span></div>
+                            <div class="stat-row"><span>Remaining Supplies:</span><span>${game.supplies.food} food, ${game.supplies.fuel} fuel</span></div>
+                        </div>
+
+                        <div class="party-list">
+                            <h4>Who Made It:</h4>
+                            ${survivors.map(m => `<div class="party-member"><span>${m.name}</span><span>SURVIVED (Ready for Space Mountain!)</span></div>`).join('')}
+                            ${game.party.filter(m => !m.alive).map(m => `<div class="party-member dead"><span>${m.name}</span><span>Lost along the way</span></div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="choices">
+                        <button class="choice-btn" onclick="startGame()">[ PLAY AGAIN ]</button>
+                    </div>
+                `;
+            } else {
+                screen.innerHTML = `
+                    <div class="game-over defeat">
+                        <div class="ascii-art">
+   _____          __  __ ______    ______      ________ _____
+  / ____|   /\\   |  \\/  |  ____|  / __ \\ \\    / /  ____|  __ \\
+ | |  __   /  \\  | \\  / | |__    | |  | \\ \\  / /| |__  | |__) |
+ | | |_ | / /\\ \\ | |\\/| |  __|   | |  | |\\ \\/ / |  __| |  _  /
+ | |__| |/ ____ \\| |  | | |____  | |__| | \\  /  | |____| | \\ \\
+  \\_____/_/    \\_\\_|  |_|______|  \\____/   \\/   |______|_|  \\_\\
+                        </div>
+
+                        <h2>YOUR JOURNEY HAS ENDED</h2>
+
+                        <div class="narrative danger-text">
+                            <p>${game.gameOverReason || 'The wasteland has claimed another group of souls.'}</p>
+                        </div>
+
+                        <div class="stats-display">
+                            <h4>Final Statistics:</h4>
+                            <div class="stat-row"><span>Days Survived:</span><span>${daysTravel}</span></div>
+                            <div class="stat-row"><span>Distance Traveled:</span><span>${game.distance} / ${CONFIG.TOTAL_DISTANCE} miles</span></div>
+                            <div class="stat-row"><span>Survivors:</span><span>${survivors.length}/${game.party.length}</span></div>
+                        </div>
+
+                        <div class="party-list">
+                            <h4>The Fallen:</h4>
+                            ${game.party.map(m => `<div class="party-member ${m.alive ? '' : 'dead'}"><span>${m.name}</span><span>${m.alive ? 'Survived' : 'Deceased'}</span></div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="choices">
+                        <button class="choice-btn" onclick="startGame()">[ TRY AGAIN ]</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize game
+        render();
+    </script>
+</body>
+</html>
