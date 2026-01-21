@@ -428,6 +428,40 @@
                 font-size: 0.5em;
             }
         }
+
+        /* Easter Egg: Pudding Drop */
+        .ascii-art-clickable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .ascii-art-clickable:hover {
+            text-shadow: 0 0 10px #33ff33;
+            transform: scale(1.02);
+        }
+
+        .pudding-drop {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            font-size: 80px;
+            z-index: 9999;
+            animation: pudding-fall 3s linear forwards;
+            pointer-events: none;
+        }
+
+        @keyframes pudding-fall {
+            0% {
+                top: -100px;
+                opacity: 1;
+                transform: rotate(0deg);
+            }
+            100% {
+                top: 100vh;
+                opacity: 0.8;
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -464,7 +498,7 @@
         const CONFIG = {
             TOTAL_DISTANCE: 1300, // miles from Chicago to Disney World
             DAILY_TRAVEL: { MIN: 12, MAX: 25 },
-            STARTING_MONEY: 2500,
+            STARTING_MONEY: 1500,
             FOOD_PER_PERSON_PER_DAY: 3,
             FUEL_PER_DAY: { SLOW: 5, NORMAL: 10, FAST: 15 },
             EVENT_CHANCE: 0.4,
@@ -761,6 +795,24 @@
         function addLog(message) {
             game.log.unshift({ day: game.day, message });
             if (game.log.length > 20) game.log.pop();
+        }
+
+        // Easter Egg: Pudding Drop Function
+        function dropPudding() {
+            const pudding = document.createElement('div');
+            pudding.className = 'pudding-drop';
+            pudding.textContent = '🍮';
+
+            // Random horizontal position
+            const randomX = Math.random() * (window.innerWidth - 80);
+            pudding.style.left = randomX + 'px';
+
+            document.body.appendChild(pudding);
+
+            // Remove after animation completes
+            setTimeout(() => {
+                pudding.remove();
+            }, 3000);
         }
 
         // Render functions
@@ -1344,10 +1396,14 @@
                 }
             }
 
+            // Check if we're on Amtrak (for Easter egg)
+            const isAmtrak = game.distance < 300;
+            const asciiClass = isAmtrak ? 'ascii-art ascii-art-clickable' : 'ascii-art';
+
             screen.innerHTML = `
                 ${renderStatusBar()}
 
-                <div class="ascii-art">
+                <div class="${asciiClass}" id="transportation-art">
 ${getTransportationArt()}
                 </div>
 
@@ -1377,6 +1433,14 @@ ${getTransportationArt()}
                     </button>
                 </div>
             `;
+
+            // Easter egg: Make Amtrak art clickable to drop pudding
+            if (isAmtrak) {
+                const artElement = document.getElementById('transportation-art');
+                if (artElement) {
+                    artElement.addEventListener('click', dropPudding);
+                }
+            }
         }
 
         function travel(pace) {
