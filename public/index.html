@@ -690,6 +690,43 @@
                         { text: 'Attack the monks in revenge', requireWeapons: true, successChance: 0.4, success: { weapons: -1, losePonch: true, morale: -20 }, fail: { catastrophicFailure: true } },
                         { text: 'Flee in horror', effects: { losePonch: true, morale: -35, fuel: -15 } }
                     ]
+                },
+                {
+                    title: 'Deranged Preacher',
+                    text: 'A wild-eyed man in tattered robes blocks your path. He holds a makeshift wooden cross. "Sinners!" he screams. "You must be purified! Crucifixion is the only path to salvation!" His followers emerge from the shadows, carrying rope and nails.',
+                    choices: [
+                        { text: 'Try to reason with him', successChance: 0.3, success: { morale: -5 }, fail: { catastrophicFailure: true } },
+                        { text: 'Fight your way through', requireWeapons: true, successChance: 0.7, success: { weapons: -1, morale: -10 }, fail: { catastrophicFailure: true } },
+                        { text: 'Flee immediately', effects: { fuel: -20, morale: -15, daysLost: 1 } }
+                    ]
+                },
+                {
+                    title: 'The Hunter',
+                    text: 'CHECK_HUNTER_TEXT',
+                    choices: [
+                        { text: 'Fight her', requireWeapons: true, successChance: 0.6, success: { weapons: -1, morale: -15 }, fail: { catastrophicFailure: true } },
+                        { text: 'Try to outrun her', successChance: 0.5, success: { fuel: -15 }, fail: { injureRandom: true, morale: -20 } },
+                        { text: 'Set a trap for her', requireWeapons: true, successChance: 0.4, success: { weapons: -1, morale: -10 }, fail: { loseSupplies: true, injureRandom: true } }
+                    ]
+                },
+                {
+                    title: 'Post-Apocalyptic Elvis Impersonators',
+                    text: 'A gang of Elvis impersonators surrounds you. They\'re wearing tattered jumpsuits and broken sunglasses. Their leader gyrates menacingly. "This is our territory," he drawls. "You need to pay the toll... uh-huh-huh." They want your supplies. All of them are armed with bedazzled pistols.',
+                    choices: [
+                        { text: 'Give them supplies as tribute', effects: { food: -30, fuel: -20, morale: -15 } },
+                        { text: 'Challenge them to a dance-off', successChance: 0.5, success: { morale: 10 }, fail: { loseSupplies: true, morale: -20 } },
+                        { text: 'Fight the Elvis gang', requireWeapons: true, successChance: 0.55, success: { weapons: -1, morale: -5 }, fail: { catastrophicFailure: true } }
+                    ]
+                },
+                {
+                    title: 'Bear Attack!',
+                    text: 'A massive bear emerges from the ruins! Post-apocalyptic bears are even more aggressive than regular bears. It charges toward your party, roaring with primal fury.',
+                    choices: [
+                        { text: 'Shoot the bear', requireWeapons: true, successChance: 0.65, success: { weapons: -1, food: 50 }, fail: { catastrophicFailure: true } },
+                        { text: 'Play dead', successChance: 0.4, success: { morale: -10 }, fail: { injureRandom: true, morale: -20 } },
+                        { text: 'Throw food and run', effects: { food: -40, morale: -10 } },
+                        { text: 'Make loud noises to scare it', successChance: 0.5, success: { morale: -5 }, fail: { injureRandom: true, morale: -15 } }
+                    ]
                 }
             ],
             NEUTRAL: [
@@ -769,7 +806,13 @@
             bloomEncountered: false,
             lastBloomDay: -10,
             hasPonch: false,
-            ponchEncountered: false
+            ponchEncountered: false,
+            mayberryEncountered: false,
+            frogBloodMonksEncountered: false,
+            preacherEncountered: false,
+            elvisEncountered: false,
+            hunterEncountered: false,
+            hunterFirstTime: true
         };
 
         // Utility functions
@@ -986,7 +1029,13 @@
                 bloomEncountered: false,
                 lastBloomDay: -10,
                 hasPonch: false,
-                ponchEncountered: false
+                ponchEncountered: false,
+                mayberryEncountered: false,
+                frogBloodMonksEncountered: false,
+                preacherEncountered: false,
+                elvisEncountered: false,
+                hunterEncountered: false,
+                hunterFirstTime: true
             };
             render();
         }
@@ -1334,6 +1383,63 @@
   BULK SUPPLIES!`;
             }
 
+            if (encounterTitle === 'Deranged Preacher') {
+                return `
+      ___
+     /   \\
+    | X X |
+    |  o  |
+     \\___/
+      |||
+     / + \\
+    /     \\
+
+  "CRUCIFIXION!"
+   MAD PREACHER`;
+            }
+
+            if (encounterTitle === 'The Hunter') {
+                return `
+      .---.
+     | - - |
+    |   >   |
+     \\ ___ /
+      | | |
+     /| | |\\
+      ) | (
+     /  |  \\
+
+   THE HUNTER
+  (Teenage Girl)`;
+            }
+
+            if (encounterTitle === 'Post-Apocalyptic Elvis Impersonators') {
+                return `
+     ~~~~~
+    | @ @ |
+    |  V  |
+     \\ ~ /
+   ___|_|___
+  |  ELVIS  |
+  |_________|
+
+  "UH-HUH-HUH"
+   ELVIS GANG`;
+            }
+
+            if (encounterTitle === 'Bear Attack!') {
+                return `
+      /\\_/\\
+     ( o.o )
+      > ^ <
+     /|   |\\
+    / |   | \\
+   (__|___|__)
+
+    BEAR!
+  (Angry Bear)`;
+            }
+
             // Generic encounter
             return `
       /\\
@@ -1600,6 +1706,22 @@ ${getTransportationArt()}
                 eventPool = eventPool.filter(e => e.title !== 'Wild Bison');
             }
 
+            // Filter out one-time events that have already occurred
+            if (eventPool === EVENTS.BAD) {
+                if (game.mayberryEncountered) {
+                    eventPool = eventPool.filter(e => e.title !== 'The Mayberry Brigade');
+                }
+                if (game.frogBloodMonksEncountered) {
+                    eventPool = eventPool.filter(e => e.title !== 'Frog-Blood Monks');
+                }
+                if (game.preacherEncountered) {
+                    eventPool = eventPool.filter(e => e.title !== 'Deranged Preacher');
+                }
+                if (game.elvisEncountered) {
+                    eventPool = eventPool.filter(e => e.title !== 'Post-Apocalyptic Elvis Impersonators');
+                }
+            }
+
             game.currentEvent = JSON.parse(JSON.stringify(randomChoice(eventPool)));
 
             // Handle dynamic Bloom text and track when he appears
@@ -1612,6 +1734,23 @@ ${getTransportationArt()}
                     game.currentEvent.text = 'Bloom appears again on the horizon. He\'s still pursuing you, relentless and unstoppable. How does he keep finding you?';
                 }
             }
+
+            // Handle dynamic Hunter text and track when she appears
+            if (game.currentEvent.text === 'CHECK_HUNTER_TEXT') {
+                if (!game.hunterEncountered) {
+                    game.currentEvent.text = 'A teenage girl steps out from behind the ruins. She\'s armed with a bow, arrows slung across her back. "My father is hungry," she says coldly. "And you look like dinner." Her eyes are dead, emotionless. She\'s done this before.';
+                    game.hunterEncountered = true;
+                    game.hunterFirstTime = false;
+                } else {
+                    game.currentEvent.text = 'The hunter has caught up with you! The same teenage girl from before emerges, bow drawn. "You got away last time," she snarls. "Not again. My father\'s hunger grows." She\'s been tracking you for miles.';
+                }
+            }
+
+            // Mark one-time events as encountered
+            if (game.currentEvent.title === 'The Mayberry Brigade') game.mayberryEncountered = true;
+            if (game.currentEvent.title === 'Frog-Blood Monks') game.frogBloodMonksEncountered = true;
+            if (game.currentEvent.title === 'Deranged Preacher') game.preacherEncountered = true;
+            if (game.currentEvent.title === 'Post-Apocalyptic Elvis Impersonators') game.elvisEncountered = true;
 
             game.state = GameState.EVENT;
             render();
@@ -1788,6 +1927,30 @@ ${getEncounterArt(event.title)}
                 return 'You attacked the frog-blood monks in a rage, trying to avenge Ponch. But they were too strong, too many, too prepared. They overwhelmed you easily. Your last thought is of Ponch—brave, loyal Ponch—and how you both deserved better than this. The monks continue their feast. Your journey ends here, in a place soaked with grief and blood.';
             }
 
+            if (event.title === 'Deranged Preacher') {
+                if (choice.text.includes('reason')) {
+                    return 'You try to reason with the preacher, to explain that crucifixion isn\'t necessary. But reason left his mind years ago. "Silence, heretic!" he screams. His followers grab you, drag you to the makeshift crosses. The last thing you hear is him preaching about salvation as the nails go in. Your journey ends on a cross in the wasteland.';
+                } else if (choice.text.includes('Fight')) {
+                    return 'You fight the preacher and his cult, but there are too many of them. They swarm you like zealots, overwhelmed by religious fervor. You go down fighting, but it doesn\'t matter. They crucify you anyway. Your last thought is that at least you tried.';
+                }
+            }
+
+            if (event.title === 'The Hunter' && choice.text.includes('Fight')) {
+                return 'You underestimated her. She\'s fast, trained, and has been hunting humans for years. Her arrow finds your throat before you can even draw your weapon. As you fall, bleeding out, she stands over you coldly. "Father will eat well tonight," she whispers. Your journey ends as someone\'s dinner.';
+            }
+
+            if (event.title === 'Post-Apocalyptic Elvis Impersonators' && choice.text.includes('Fight')) {
+                return 'You thought Elvis impersonators wouldn\'t be a threat. You were wrong. They move with surprising coordination, their bedazzled pistols very real and very deadly. "Thank you, thank you very much," the leader says as you bleed out. Your last sight is rhinestones sparkling in the sun. What a way to go.';
+            }
+
+            if (event.title === 'Bear Attack!' && choice.text.includes('Shoot')) {
+                return 'You try to shoot the bear, but you miss the vital spots. The wounded bear charges with even more fury. It mauls your entire party with terrifying speed and strength. You die knowing that you made an angry bear even angrier. Not your best decision.';
+            }
+
+            if (event.title === 'Duster Ambush!' && choice.text.includes('fight')) {
+                return 'The ambush was too well planned. Dusters surround you from all sides, their steel-hard bones making them nearly impossible to kill. You fight valiantly, but you\'re outnumbered ten to one. The feeding frenzy is quick. Disney World will never know you tried.';
+            }
+
             // Generic catastrophic failure
             return 'Your choice proved fatal. The wasteland claims another victim. Your journey ends here, miles from Disney World, in a place nobody will remember.';
         }
@@ -1910,6 +2073,72 @@ ${getEncounterArt(event.title)}
                         : 'You charge the monks in blind rage, but they were ready. They overpower you easily. You fought for Ponch, but it wasn\'t enough. The monks leave you bleeding in the dirt. Ponch is gone, and you nearly joined her.';
                 } else {
                     return 'You can\'t bear to watch. You flee, the sounds of the feast echoing behind you. Ponch fought for you so many times. And when she needed you most, you ran. The guilt will haunt you for the rest of the journey. Every night, you\'ll hear her final bellows. Your party is devastated. Disney World doesn\'t seem important anymore.';
+                }
+            }
+
+            // Deranged Preacher
+            if (event.title === 'Deranged Preacher') {
+                if (choice.text.includes('reason')) {
+                    return success
+                        ? 'You speak calmly, quoting scripture (you vaguely remember from Sunday school). Somehow, it works. The preacher pauses, confused. "Perhaps... perhaps you are saved after all," he mutters. His followers lower their crosses. You back away slowly and escape. Your hands are shaking.'
+                        : 'Your words fall on deaf ears. The preacher screams louder, drowning you out. His followers surge forward with their crosses and rope. You barely escape, running into the wasteland. That was too close.';
+                } else if (choice.text.includes('Fight')) {
+                    return success
+                        ? 'You fight the preacher\'s cult with desperate fury. You manage to break through their lines, using your weapons to create an opening. Several cultists go down. You escape, but the encounter leaves your party shaken and low on ammunition.'
+                        : 'You engage the cultists in combat, but there are too many. They swarm you, forcing you to retreat. Someone got hurt in the chaos. You lose weapons and supplies in the fighting. The preacher\'s manic laughter follows you as you flee.';
+                } else {
+                    return 'You don\'t wait to see what happens. You gun the engine and flee immediately, burning precious fuel to put distance between you and the crucifixion cult. Your party is rattled. That preacher\'s eyes will haunt your dreams.';
+                }
+            }
+
+            // The Hunter
+            if (event.title === 'The Hunter') {
+                if (choice.text.includes('Fight')) {
+                    return success
+                        ? 'You engage the hunter in combat. She\'s fast and skilled, but you\'re better armed. You manage to wound her, forcing her to retreat into the ruins. "This isn\'t over," she hisses as she disappears. You know she\'ll be back.'
+                        : 'You try to fight the hunter, but she\'s been doing this for years. Her arrows find their marks, injuring your party. You barely drive her off. She melts into the shadows, but you can feel her watching you. She\'ll hunt you again.';
+                } else if (choice.text.includes('outrun')) {
+                    return success
+                        ? 'You flee as fast as you can, using every trick you know to lose her. You burn fuel weaving through ruins and abandoned streets. Eventually, you lose sight of her. But you know she\'s still out there, tracking you.'
+                        : 'You try to outrun her, but she\'s an expert tracker. She catches up, firing arrows as she pursues. Someone gets injured before you finally shake her. The hunter is still on your trail. You\'ll see her again.';
+                } else {
+                    return success
+                        ? 'You set a clever trap using supplies as bait. The hunter falls for it, getting caught in your snare. You use the opportunity to escape. She screams in frustration as you disappear. You bought yourself some time.'
+                        : 'You try to set a trap, but the hunter is too experienced. She sees through it immediately and turns it against you. You lose supplies and someone gets injured. She laughs as you flee. "I\'ll find you again," she promises.';
+                }
+            }
+
+            // Post-Apocalyptic Elvis Impersonators
+            if (event.title === 'Post-Apocalyptic Elvis Impersonators') {
+                if (choice.text.includes('tribute')) {
+                    return 'You hand over food and fuel to the Elvis gang. The leader accepts with an exaggerated bow. "Thank you, thank you very much," he croons. They let you pass, gyrating menacingly as you leave. Your supplies are lighter, but you\'re alive. The wasteland is so weird.';
+                } else if (choice.text.includes('dance-off')) {
+                    return success
+                        ? 'You challenge them to a dance-off. Against all odds, your party puts on a show. You do the twist, the mashed potato, some moves that haven\'t been invented yet. The Elvises are impressed. "You got the moves, baby," the leader says. They let you pass. Morale actually improves. That was surreal.'
+                        : 'You attempt a dance-off, but your moves are weak. The Elvises laugh mockingly. "You ain\'t nothing but a hound dog," the leader sneers. They take your supplies as punishment for the embarrassing display. Your party hangs their heads in shame.';
+                } else {
+                    return success
+                        ? 'You fight the Elvis gang. It\'s the strangest battle of your life—bedazzled jumpsuits flashing, hip-shaking as they shoot. But you prevail. The Elvises scatter. "Elvis has left the building," you mutter. Your party is traumatized but alive.'
+                        : 'You engage the Elvis gang in combat. They\'re surprisingly coordinated, their rhinestone pistols very effective. You\'re forced to retreat. The last thing you hear is them singing "Jailhouse Rock" as you flee. What is happening to the world?';
+                }
+            }
+
+            // Bear Attack
+            if (event.title === 'Bear Attack!') {
+                if (choice.text.includes('Shoot')) {
+                    return success
+                        ? 'You shoot the bear, landing a perfect kill shot. It drops immediately. Your party harvests the meat—bear steaks for weeks. Fresh meat is a rare luxury in the apocalypse. The encounter actually worked out in your favor.'
+                        : 'You shoot at the bear but miss the vital spots. The wounded bear becomes even more enraged. It mauls someone before you finally drive it off. The injured party member needs medical attention. That could have gone better.';
+                } else if (choice.text.includes('Play dead')) {
+                    return success
+                        ? 'You all drop to the ground and play dead. The bear sniffs around, growls, paws at someone. Then, miraculously, it loses interest and wanders off. You wait ten minutes before moving. Your party is shaken but unharmed.'
+                        : 'You try to play dead, but the bear isn\'t fooled. It swipes at your party, injuring someone before you scramble away. Playing dead doesn\'t work as well in practice as in theory. Who knew?';
+                } else if (choice.text.includes('food')) {
+                    return 'You throw food at the bear. It immediately stops chasing you and devours the rations. While it\'s distracted, you escape. The bear doesn\'t follow—it got what it wanted. You lost a lot of food, but avoided a mauling.';
+                } else {
+                    return success
+                        ? 'You make loud noises—yelling, banging pots, whatever makes sound. The bear is startled and confused. It backs off, then runs away. You scared off a post-apocalyptic bear with noise. Your party is impressed.'
+                        : 'You try to scare the bear with loud noises, but it just makes it angrier. The bear charges, swiping at your party. Someone gets injured before the bear finally retreats. Note to self: angry bears don\'t scare easily.';
                 }
             }
 
