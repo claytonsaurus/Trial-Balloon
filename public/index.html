@@ -845,31 +845,43 @@
             const pudding = document.createElement('div');
             pudding.className = 'pudding-drop';
 
-            // Create SVG image of butterscotch Snack Pack
+            // Create SVG image of capuchin monkey
             pudding.innerHTML = `
                 <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Pudding cup container -->
+                    <!-- Capuchin Monkey -->
                     <defs>
-                        <linearGradient id="puddingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#D4A574;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#A67C52;stop-opacity:1" />
-                        </linearGradient>
+                        <radialGradient id="monkeyFace" cx="50%" cy="50%">
+                            <stop offset="0%" style="stop-color:#F5DEB3;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#D2B48C;stop-opacity:1" />
+                        </radialGradient>
                     </defs>
-                    <!-- Cup shape -->
-                    <path d="M 25 20 L 30 70 Q 50 75 70 70 L 75 20 Z"
-                          fill="url(#puddingGradient)"
-                          stroke="#8B6914"
-                          stroke-width="2"/>
-                    <!-- Label -->
-                    <rect x="30" y="30" width="40" height="25" fill="#FFE4B5" rx="3"/>
-                    <text x="50" y="40" font-family="Arial" font-size="8" font-weight="bold"
-                          text-anchor="middle" fill="#8B4513">SNACK</text>
-                    <text x="50" y="50" font-family="Arial" font-size="8" font-weight="bold"
-                          text-anchor="middle" fill="#8B4513">PACK</text>
-                    <!-- Pudding surface -->
-                    <ellipse cx="50" cy="22" rx="25" ry="8" fill="#C19A6B"/>
-                    <!-- Shine effect -->
-                    <ellipse cx="45" cy="35" rx="8" ry="15" fill="white" opacity="0.3"/>
+                    <!-- Head -->
+                    <circle cx="50" cy="45" r="28" fill="url(#monkeyFace)" stroke="#8B4513" stroke-width="1"/>
+                    <!-- Dark cap (characteristic of capuchin) -->
+                    <ellipse cx="50" cy="30" rx="26" ry="18" fill="#654321"/>
+                    <!-- Ears -->
+                    <ellipse cx="25" cy="40" rx="8" ry="10" fill="#8B6914"/>
+                    <ellipse cx="75" cy="40" rx="8" ry="10" fill="#8B6914"/>
+                    <!-- Inner ears -->
+                    <ellipse cx="25" cy="42" rx="4" ry="5" fill="#D2B48C"/>
+                    <ellipse cx="75" cy="42" rx="4" ry="5" fill="#D2B48C"/>
+                    <!-- Eyes -->
+                    <circle cx="42" cy="48" r="5" fill="white"/>
+                    <circle cx="58" cy="48" r="5" fill="white"/>
+                    <circle cx="43" cy="49" r="3" fill="black"/>
+                    <circle cx="59" cy="49" r="3" fill="black"/>
+                    <!-- Highlights in eyes -->
+                    <circle cx="44" cy="47" r="1.5" fill="white"/>
+                    <circle cx="60" cy="47" r="1.5" fill="white"/>
+                    <!-- Nose -->
+                    <ellipse cx="50" cy="58" rx="4" ry="3" fill="#8B4513"/>
+                    <!-- Nostrils -->
+                    <circle cx="48" cy="58" r="1" fill="#654321"/>
+                    <circle cx="52" cy="58" r="1" fill="#654321"/>
+                    <!-- Mouth -->
+                    <path d="M 45 63 Q 50 66 55 63" stroke="#8B4513" stroke-width="1.5" fill="none"/>
+                    <!-- Body/shoulders -->
+                    <ellipse cx="50" cy="85" rx="20" ry="15" fill="#A0522D"/>
                 </svg>
             `;
 
